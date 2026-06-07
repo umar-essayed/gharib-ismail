@@ -147,11 +147,16 @@ class SupabaseSyncService
             $currentStock = (int) ($stockStmt->fetchColumn() ?: $product['opening_stock'] ?? 0);
             $safeStock    = (int) min(2147483647, max(0, $currentStock));
 
-            // بناء الـ image URL إذا وُجدت صورة محلية
+            // بناء الـ image URL إذا وُجدت صورة محلية أو خارجية
             $imageUrl = null;
             if (!empty($product['image_path'])) {
-                $appConfig = config('app');
-                $imageUrl  = rtrim($appConfig['base_url'] ?? '', '/') . '/' . ltrim($product['image_path'], '/');
+                $imgPath = $product['image_path'];
+                if (str_starts_with($imgPath, 'http://') || str_starts_with($imgPath, 'https://')) {
+                    $imageUrl = $imgPath;
+                } else {
+                    $appConfig = config('app');
+                    $imageUrl  = rtrim($appConfig['base_url'] ?? '', '/') . '/' . ltrim($imgPath, '/');
+                }
             }
 
             $payload = [
@@ -359,7 +364,12 @@ class SupabaseSyncService
 
                 $imageUrl = null;
                 if (!empty($prod['image_path'])) {
-                    $imageUrl = $baseUrl . '/' . ltrim($prod['image_path'], '/');
+                    $imgPath = $prod['image_path'];
+                    if (str_starts_with($imgPath, 'http://') || str_starts_with($imgPath, 'https://')) {
+                        $imageUrl = $imgPath;
+                    } else {
+                        $imageUrl = $baseUrl . '/' . ltrim($imgPath, '/');
+                    }
                 }
 
                 $prodPayloads[] = [

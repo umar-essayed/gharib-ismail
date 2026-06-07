@@ -3,8 +3,8 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import ProductCard from '@/components/ProductCard';
-import ScrollReveal from '@/components/ScrollReveal';
 import { Product, Category } from '@/types';
 import { supabase } from '@/lib/supabase';
 import { mockCategories, mockProducts } from '@/lib/mockData';
@@ -257,7 +257,6 @@ function ProductsContent() {
           </div>
         ) : (
           <>
-            <ScrollReveal>
               <div className={`grid gap-4 sm:gap-6 ${
                 layoutMode === 'list' 
                   ? 'grid-cols-1 md:grid-cols-2' 
@@ -267,7 +266,6 @@ function ProductsContent() {
                   <ProductCard key={product.id} product={product} layout={layoutMode} />
                 ))}
               </div>
-            </ScrollReveal>
 
             {/* Load More Button */}
             {products.length < totalCount && (
@@ -293,52 +291,7 @@ function ProductsContent() {
 
       </main>
 
-      {/* Footer */}
-      <footer id="about" className="bg-[#111827] text-white pt-16 pb-8 border-t-4 border-primary mt-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-3 gap-8 pb-12 border-b border-slate-800">
-          
-          <div className="space-y-4 text-right">
-            <h4 className="text-sm font-black text-primary">بيانات التواصل</h4>
-            <div className="space-y-2.5 text-xs text-gray-300 font-semibold">
-              <p>📍 الاسكندرية العامرية، العامرية الناصرية القديمة</p>
-              <p dir="ltr">📞 +20 1211879341</p>
-              <p>الرمز البريدي: 5334310</p>
-            </div>
-          </div>
-
-          <div className="space-y-4 text-right">
-            <h4 className="text-sm font-black text-primary">روابط سريعة</h4>
-            <div className="grid grid-cols-2 gap-2 text-xs text-gray-300 font-bold">
-              <Link href="/" className="hover:text-primary transition-colors">الشروط والأحكام</Link>
-              <Link href="/" className="hover:text-primary transition-colors">سياسة الخصوصية</Link>
-              <Link href="/" className="hover:text-primary transition-colors">معلومات التوصيل</Link>
-              <Link href="/products" className="hover:text-primary transition-colors">جميع الأصناف</Link>
-            </div>
-          </div>
-
-          <div className="space-y-4 text-right">
-            <h4 className="text-sm font-black text-primary">النشرة البريدية</h4>
-            <p className="text-xs text-gray-300 leading-normal font-semibold">سجل بريدك الإلكتروني لتصلك عروض المجمدات والبقالة الأسبوعية أولاً بأول.</p>
-            <form onSubmit={(e) => { e.preventDefault(); alert('تم الاشتراك بالنشرة بنجاح!'); }} className="flex items-center gap-2">
-              <input
-                type="email"
-                required
-                placeholder="البريد الإلكتروني..."
-                className="bg-slate-900 border border-slate-800 text-white rounded-xl px-4 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-primary flex-1 text-right"
-              />
-              <button type="submit" className="bg-primary hover:bg-primary-dark text-white p-2 rounded-xl transition-all shadow-xs">
-                <Send size={15} />
-              </button>
-            </form>
-          </div>
-
-        </div>
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-gray-400 font-bold gap-4 text-center sm:text-right">
-          <p>© {new Date().getFullYear()} الناصريه جمله ماركت. جميع الحقوق محفوظة.</p>
-          <p className="text-[10px] text-gray-500">تم التطوير بجودة متناهية لتطبيقات الويب الحديثة</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

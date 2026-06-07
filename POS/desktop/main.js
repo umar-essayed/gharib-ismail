@@ -724,7 +724,10 @@ app.on('quit', () => {
 ipcMain.on('print-silent', (event, printerName) => {
     const printOptions = {
         silent: true,
-        printBackground: true
+        printBackground: true,
+        margins: {
+            marginType: 'none'
+        }
     };
     if (printerName) {
         printOptions.deviceName = printerName;
