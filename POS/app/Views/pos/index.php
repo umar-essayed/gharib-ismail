@@ -38,8 +38,7 @@
                 'promo_value' => isset($p['promotion_discount_value']) ? (float) $p['promotion_discount_value'] : null,
                 'promo_start' => $p['promotion_start_date'] ?? null,
                 'promo_end' => $p['promotion_end_date'] ?? null,
-            ];
-        }, $products), JSON_UNESCAPED_UNICODE) ?>;
+        }, $products), JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR) ?: '[]' ?>;
         </script>
     </div>
 
@@ -170,9 +169,9 @@
     const canModifyPrice = <?= can('pos.modify_price') ? 'true' : 'false' ?>;
     const paymentMethods = <?= json_encode(array_values(array_map(static function($m){
         return ['id' => (int)$m['id'], 'name' => $m['name'], 'code' => $m['code']];
-    }, $paymentMethods)), JSON_UNESCAPED_UNICODE) ?>;
-    const preferredPrinterName = <?= json_encode(\App\Services\SettingsService::get('receipt_printer_name', 'XP-80'), JSON_UNESCAPED_UNICODE) ?>;
-    const posSearchEndpoint = <?= json_encode(url('/pos/search'), JSON_UNESCAPED_UNICODE) ?>;
+    }, $paymentMethods)), JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR) ?: '[]' ?>;
+    const preferredPrinterName = <?= json_encode(\App\Services\SettingsService::get('receipt_printer_name', 'XP-80'), JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR) ?: '""' ?>;
+    const posSearchEndpoint = <?= json_encode(url('/pos/search'), JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR) ?: '""' ?>;
     const qzScriptLoaded = typeof window.qz !== 'undefined';
     quickAction.value = '';
 

@@ -370,8 +370,8 @@ class ScaleBarcodeParser
                   AND p.is_active = 1
                   AND p.barcode IS NOT NULL
                   AND p.barcode <> ""
-                  AND CHAR_LENGTH(p.barcode) = ?
-                  AND SUBSTRING(p.barcode, ' . $itemStart . ', ' . $itemLength . ') = ?'
+                  AND LENGTH(p.barcode) = ?
+                  AND SUBSTR(p.barcode, ' . $itemStart . ', ' . $itemLength . ') = ?'
                 . $prefixSql .
                 ' ORDER BY
                     CASE WHEN p.sell_type = "weight" THEN 0 ELSE 1 END,
@@ -410,8 +410,20 @@ class ScaleBarcodeParser
             return $exists;
         }
 
-        $stmt = Database::pdo()->query("SHOW TABLES LIKE 'scale_barcode_logs'");
-        $exists = (bool) $stmt->fetchColumn();
+        try {
+            $db = Database::pdo();
+            $driver = $db->getAttribute(\PDO::ATTR_DRIVER_NAME);
+            if ($driver === 'sqlite') {
+                $stmt = $db->query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='scale_barcode_logs'");
+                $exists = (bool) $stmt->fetchColumn();
+            } else {
+                $stmt = $db->query("SHOW TABLES LIKE 'scale_barcode_logs'");
+                $exists = (bool) $stmt->fetchColumn();
+            }
+        } catch (\Throwable $e) {
+            $exists = false;
+        }
+
         return $exists;
     }
 
