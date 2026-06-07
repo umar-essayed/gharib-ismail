@@ -201,10 +201,12 @@ $router->post('/api/settings/save-tunnel', function (): void {
     $token = trim((string) input('token', ''));
     $domain = trim((string) input('domain', ''));
     $printer = trim((string) input('printer', ''));
+    $labelPrinter = trim((string) input('label_printer', ''));
 
     \App\Services\SettingsService::set('cloudflare_tunnel_token', $token);
     \App\Services\SettingsService::set('cloudflare_tunnel_domain', $domain);
     \App\Services\SettingsService::set('default_printer', $printer);
+    \App\Services\SettingsService::set('label_printer', $labelPrinter);
 
     // تحديث رابط الويب هوك في Supabase تلقائياً
     \App\Services\SupabaseSyncService::updateWebhookUrl($domain);

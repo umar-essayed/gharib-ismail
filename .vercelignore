@@ -1,0 +1,19 @@
+# Ignore the entire Cashier/POS system
+POS/
+
+# Ignore database migration files and SQL scripts
+*.sql
+
+# Ignore local server scripts
+start_server.sh
+test_login.php
+
+# Ignore heavy XML and temporary files
+EGY-EGY-CAPMAS-NSPD-EE.xml
+Gemini_Generated_Image_oio97joio97joio9.png
+
+# Ignore lock and log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*

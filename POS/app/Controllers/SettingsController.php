@@ -66,6 +66,7 @@ class SettingsController extends Controller
             'scale_max_weight_kg',
             'invoice_footer',
             'default_printer',
+            'label_printer',
             'cloudflare_tunnel_token',
             'cloudflare_tunnel_domain',
         ];

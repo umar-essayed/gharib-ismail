@@ -370,7 +370,7 @@ class ScaleBarcodeParser
                   AND p.is_active = 1
                   AND p.barcode IS NOT NULL
                   AND p.barcode <> ""
-                  AND LENGTH(p.barcode) = ?
+                  AND LENGTH(p.barcode) = CAST(? AS INTEGER)
                   AND SUBSTR(p.barcode, ' . $itemStart . ', ' . $itemLength . ') = ?'
                 . $prefixSql .
                 ' ORDER BY

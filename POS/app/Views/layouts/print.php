@@ -84,7 +84,12 @@
         if (shouldPrint) {
             try {
                 if (window.electronAPI) {
-                    const printerName = <?= json_encode(\App\Services\SettingsService::get('default_printer', '')) ?>;
+                    let printerName = '';
+                    if (window.location.pathname.includes('/barcode/print')) {
+                        printerName = <?= json_encode(\App\Services\SettingsService::get('label_printer', '')) ?> || <?= json_encode(\App\Services\SettingsService::get('default_printer', '')) ?>;
+                    } else {
+                        printerName = <?= json_encode(\App\Services\SettingsService::get('default_printer', '')) ?>;
+                    }
                     window.electronAPI.printSilent(printerName);
                 } else {
                     window.print();

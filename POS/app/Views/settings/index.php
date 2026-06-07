@@ -54,6 +54,15 @@
         <div class="form-text text-muted">سيتم توجيه الفواتير صامتاً إلى هذه الطابعة.</div>
     </div>
 
+    <!-- قسم طابعة ملصقات الباركود الافتراضية -->
+    <div class="col-md-4" id="desktop-label-printer-section" style="display:none;">
+        <label class="form-label fw-semibold">طابعة ملصقات الباركود (Label Printer)</label>
+        <select class="form-select border-success" name="label_printer" id="label_printer">
+            <option value="">طابعة النظام الافتراضية</option>
+        </select>
+        <div class="form-text text-muted">سيتم توجيه ملصقات الباركود صامتاً إلى هذه الطابعة.</div>
+    </div>
+
     <!-- قسم الـ Cloudflare Tunnel Token -->
     <div class="col-md-4" id="desktop-tunnel-section" style="display:none;">
         <label class="form-label fw-semibold">رمز نفق كلاود فلير (Tunnel Token)</label>
@@ -176,6 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.electronAPI) {
         // إظهار أقسام الديسكتوب
         document.getElementById('desktop-printer-section').style.display = 'block';
+        document.getElementById('desktop-label-printer-section').style.display = 'block';
         document.getElementById('desktop-tunnel-section').style.display = 'block';
         document.getElementById('desktop-domain-section').style.display = 'block';
         document.getElementById('desktop-tunnel-status-container').style.display = 'block';
@@ -203,7 +213,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const select = document.getElementById('default_printer');
             const savedPrinter = <?= json_encode($settings['default_printer'] ?? '') ?>;
             
+            const labelSelect = document.getElementById('label_printer');
+            const savedLabelPrinter = <?= json_encode($settings['label_printer'] ?? '') ?>;
+            
             printers.forEach(printer => {
+                // طابعة الفواتير
                 const opt = document.createElement('option');
                 opt.value = printer.name;
                 opt.textContent = printer.name + (printer.isDefault ? ' (الافتراضية)' : '');
@@ -211,6 +225,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     opt.selected = true;
                 }
                 select.appendChild(opt);
+
+                // طابعة الملصقات
+                const optLabel = document.createElement('option');
+                optLabel.value = printer.name;
+                optLabel.textContent = printer.name + (printer.isDefault ? ' (الافتراضية)' : '');
+                if (printer.name === savedLabelPrinter) {
+                    optLabel.selected = true;
+                }
+                labelSelect.appendChild(optLabel);
             });
         }).catch(err => {
             console.error('Error fetching printers:', err);
@@ -265,6 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const token = document.getElementById('cloudflare_tunnel_token').value.trim();
             const domain = document.getElementById('cloudflare_tunnel_domain').value.trim();
             const printer = document.getElementById('default_printer').value;
+            const labelPrinter = document.getElementById('label_printer').value;
             const csrfToken = document.querySelector('input[name="_token"]').value;
 
             const statusBadge = document.getElementById('tunnel-status-badge');
@@ -285,7 +309,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     '_token': csrfToken,
                     'token': token,
                     'domain': domain,
-                    'printer': printer
+                    'printer': printer,
+                    'label_printer': labelPrinter
                 })
             })
             .then(res => res.json())
