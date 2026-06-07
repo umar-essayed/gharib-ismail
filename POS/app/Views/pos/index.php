@@ -38,6 +38,7 @@
                 'promo_value' => isset($p['promotion_discount_value']) ? (float) $p['promotion_discount_value'] : null,
                 'promo_start' => $p['promotion_start_date'] ?? null,
                 'promo_end' => $p['promotion_end_date'] ?? null,
+            ];
         }, $products), JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR) ?: '[]' ?>;
         </script>
     </div>
