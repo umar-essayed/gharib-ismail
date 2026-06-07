@@ -1,0 +1,5 @@
+ALTER TABLE cash_shifts
+    MODIFY COLUMN opening_balance DECIMAL(20,3) NOT NULL,
+    MODIFY COLUMN expected_balance DECIMAL(20,3) NOT NULL DEFAULT 0,
+    MODIFY COLUMN actual_balance DECIMAL(20,3) NULL,
+    MODIFY COLUMN difference DECIMAL(20,3) NULL;

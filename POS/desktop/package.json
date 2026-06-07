@@ -1,0 +1,36 @@
+{
+  "name": "posg-desktop",
+  "version": "1.0.0",
+  "description": "نظام نقاط البيع لماركت الناصرية",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "keywords": [],
+  "author": "Gharib Market",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3",
+    "electron-packager": "^17.1.2"
+  },
+  "build": {
+    "appId": "com.nasriya.posg",
+    "productName": "GharibPOS",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "dir"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  },
+  "dependencies": {
+    "jimp": "^1.6.1",
+    "png-to-ico": "^3.0.1",
+    "resedit": "^3.0.2"
+  }
+}

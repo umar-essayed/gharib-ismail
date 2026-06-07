@@ -1,0 +1,25 @@
+<?php
+
+return [
+    'dashboard.view' => 'عرض لوحة التحكم',
+    'products.manage' => 'إدارة المنتجات',
+    'promotions.manage' => 'إدارة العروض والخصومات',
+    'customers.manage' => 'إدارة العملاء',
+    'suppliers.manage' => 'إدارة الموردين',
+    'sales.manage' => 'إدارة المبيعات',
+    'purchases.manage' => 'إدارة المشتريات',
+    'returns.manage' => 'إدارة المرتجعات',
+    'inventory.manage' => 'إدارة المخزون',
+    'shifts.manage' => 'إدارة الشيفتات',
+    'cash.manage' => 'إدارة الصندوق',
+    'users.manage' => 'إدارة المستخدمين',
+    'roles.manage' => 'إدارة الأدوار والصلاحيات',
+    'reports.view' => 'عرض التقارير',
+    'settings.manage' => 'إدارة الإعدادات',
+    'barcode.print' => 'طباعة ملصقات الباركود',
+    'sales.cancel' => 'إلغاء فاتورة بيع',
+    'purchases.approve' => 'اعتماد فاتورة شراء',
+    'pos.sell' => 'البيع عبر شاشة POS',
+    'pos.modify_price' => 'تعديل سعر المنتج في POS',
+    'pos.modify_discount' => 'تعديل خصم المنتج في POS',
+];

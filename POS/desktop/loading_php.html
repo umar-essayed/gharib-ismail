@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>تهيئة النظام - أسواق الناصرية</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            color: #f8fafc;
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+        .container {
+            text-align: center;
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 20px;
+            width: 450px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            animation: fadeIn 0.8s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .logo-container {
+            margin-bottom: 25px;
+        }
+        .logo-placeholder {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+            font-weight: bold;
+        }
+        h2 {
+            margin: 10px 0 5px 0;
+            font-size: 22px;
+            color: #3b82f6;
+        }
+        p {
+            font-size: 14px;
+            color: #94a3b8;
+            margin: 5px 0 20px 0;
+        }
+        .progress-box {
+            width: 100%;
+            background: #0f172a;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #3b82f6, #60a5fa);
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.8);
+            border-radius: 4px;
+            transition: width 0.1s ease;
+        }
+        .status-text {
+            font-size: 13px;
+            color: #e2e8f0;
+            font-weight: 500;
+        }
+        .sub-status {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo-container">
+            <div class="logo-placeholder">G</div>
+        </div>
+        <h2>تهيئة بيئة العمل...</h2>
+        <p>نقوم بتنزيل وتثبيت خادم PHP للمرة الأولى لتشغيل النظام بشكل كامل تلقائياً.</p>
+        
+        <div class="progress-box">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+        
+        <div class="status-text" id="status-text">جاري الاتصال بخوادم التحميل... 0%</div>
+        <div class="sub-status" id="sub-status">يرجى عدم إغلاق التطبيق</div>
+    </div>
+
+    <script>
+        const progressBar = document.getElementById('progress-bar');
+        const statusText = document.getElementById('status-text');
+        const subStatus = document.getElementById('sub-status');
+
+        function handleProgress(data) {
+            const percent = Math.round(data.percent);
+            progressBar.style.width = percent + '%';
+            statusText.innerText = `جاري التحميل: ${percent}% (${data.downloadedMb}MB / ${data.totalMb}MB)`;
+            subStatus.innerText = `سرعة التحميل: ${data.speedKbPs} KB/s`;
+        }
+
+        function handleStatus(text) {
+            statusText.innerText = text;
+            subStatus.innerText = '';
+        }
+
+        if (window.electronAPI && typeof window.electronAPI.onDownloadProgress === 'function') {
+            window.electronAPI.onDownloadProgress(handleProgress);
+            window.electronAPI.onStatusUpdate(handleStatus);
+        } else {
+            try {
+                const { ipcRenderer } = require('electron');
+                ipcRenderer.on('download-progress', (event, data) => handleProgress(data));
+                ipcRenderer.on('status-update', (event, text) => handleStatus(text));
+            } catch (e) {
+                console.error('Failed to bind ipcRenderer:', e);
+            }
+        }
+    </script>
+</body>
+</html>

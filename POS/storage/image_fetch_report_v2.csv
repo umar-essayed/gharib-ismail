@@ -1,0 +1,101 @@
+﻿product_id,product_name,barcode,image_url,source,confidence,status
+22,مثلث لافاش8ق,3073781205114,https://images.openfoodfacts.org/images/products/307/378/120/5114/front_es.4.400.jpg,OpenFoodFacts-BC,97,found
+23,مثلث لافاش 16ق,,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+24,مثلث مزارع دينا 8ق,6224000432201,https://images.openfoodfacts.org/images/products/622/400/043/2201/front_en.4.400.jpg,OpenFoodFacts-BC,97,found
+18,مثلث مراعي 8ق,6281007035378,https://eg.jumia.is/cms/Home_26/Stickybanner/1170D60.png,Jumia-EG,75,found_by_name
+20,مثلث ميلكانا سبورتي 8ق,6223001080954,https://eg.jumia.is/cms/Home_26/Stickybanner/1170D60.png,Jumia-EG,75,found_by_name
+27,تونه صن شاين قطع,6223000717431,https://images.openfoodfacts.org/images/products/622/300/071/7431/front_ar.12.400.jpg,OpenFoodFacts-BC,97,found
+21,مثلث ميلكانا 8ق,6223001080008,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+17,مثلث ميلكانا  سبورتي 32ق,6223001080916,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+19,مثلث كيري 8ق,3073781129229,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+25,مثلث مزارع دينا 16ق,6224011439442,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+33,صن شاين ماكريل 145g,6223000710647,https://images.openfoodfacts.org/images/products/622/300/071/0647/front_en.4.400.jpg,OpenFoodFacts-BC,97,found
+30,تونه صن شاين مفتت حار,6223000710067,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+29,تونه صن شاين قطعه واحده,6223000717455,https://eg.jumia.is/cms/Home_26/Stickybanner/1170D60.png,Jumia-EG,75,found_by_name
+28,تونه صن شاين فصوص,6223000711323,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+31,تونه صن شاين قطع دايت,6223000717394,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+32,تونه صن شاين مفتت,6223000710050,https://eg.jumia.is/cms/Home_26/Stickybanner/1170D60.png,Jumia-EG,75,found_by_name
+37,البحار سردين مغربي,6624000720054,https://eg.jumia.is/cms/Home_26/Stickybanner/1170D60.png,Jumia-EG,75,found_by_name
+34,صن شاين ماكريل 350g,6223000710654,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+35,البحار سردين مغربي حار,6624000720061,https://eg.jumia.is/cms/Home_26/Stickybanner/1170D60.png,Jumia-EG,75,found_by_name
+38,تونه ماريو مفتت,6223000718940,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+39,تونه ماريو قطع,6223000718919,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+45,حلواني مربي مشمش 340g,6221029610115,https://images.openfoodfacts.org/images/products/622/102/961/0115/front_fr.3.400.jpg,OpenFoodFacts-BC,97,found
+40,تونه ماريو قطع حار,6223000714805,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+43,حلواني مرابي فراوله لايت 340g,6221029670157,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+41,توليدو سردين مغربي,6211101755018,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+42,انشوجه realmar,8414753300270,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+44,حلواني مربي برتقال لايت 340g,6221029600154,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+46,حلواني مربي تين 340g,6221029620114,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+47,حلواني مربي فراوله 340g,6221029600116,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+53,فيتراك مربي  تين 430g,6221024030031,https://images.openfoodfacts.org/images/products/622/102/403/0031/front_fr.3.400.jpg,OpenFoodFacts-BC,97,found
+49,حلواني مربي فراوله 700g,6221029600123,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+51,فيتراك مربي  توت احمر 430g,6221024992391,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+48,حلواني مربي فراوله 340g,6221029600116,https://images.openfoodfacts.org/images/products/622/102/960/0116/front_fr.4.400.jpg,OpenFoodFacts-BC,97,found
+52,فيتراك مربي فراوله كريمي 430g,6221024999925,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+50,حلواني مربي تين 700g,6221029620121,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+57,فيتراك مربي تين 850g,6221024050039,https://eg.jumia.is/unsafe/fit-in/300x300/filters:fill(white)/product/18/670214/1.jpg?9084,Jumia-EG,75,found_by_name
+55,فيتراك مربي فراوله 850g,6221024050015,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+54,فيتراك مربي فراوله 430g,6221024030017,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+58,البوادي مربي مشمش 365g,6223000762516,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+59,البوادي مربي فراوله 350g,6223000762455,https://eg.jumia.is/cms/Home_26/Stickybanner/1170D60.png,Jumia-EG,75,found_by_name
+60,البوادي مربي  تين 365g,6223000762486,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+67,حلاوه حلواني 250g,6221029500133,https://images.openfoodfacts.org/images/products/622/102/950/0133/front_fr.9.400.jpg,OpenFoodFacts-BC,97,found
+61,البوادي مربي مشمش680g,6223000762523,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+63,البوادي مربي فراوله 680g,6223000762462,https://eg.jumia.is/cms/Home_26/Stickybanner/1170D60.png,Jumia-EG,75,found_by_name
+62,البوادي مربي تين 680g,6223000762493,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+64,البوادي حلاوه سبريد 300g,6223000760321,https://eg.jumia.is/cms/Home_26/Stickybanner/1170D60.png,Jumia-EG,75,found_by_name
+66,حلاوه حلواني 575g,6221029500126,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+68,حلاوه حلواني لوز 250g,6221029580135,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+69,حلاوه حلواني فسدق 250g,6221029510132,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+72,حلاوه الحلوه 700g,6221029111674,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+70,حلاوه حلواني لايت 250g,6221029560267,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+76,حلاوه البوادي 575g,6223000760109,https://images.openfoodfacts.org/images/products/622/300/076/0109/front_fr.3.400.jpg,OpenFoodFacts-BC,97,found
+73,حلاوه الحلوه 1000g,6221029501253,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+71,حلاوه حلواني شيكولاته 250g,6221029540139,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+74,حلاوه البوادي 135g,6223000760024,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+81,طحينه البوادي 115g,6223000761014,https://images.openfoodfacts.org/images/products/622/300/076/1014/front_es.3.400.jpg,OpenFoodFacts-BC,97,found
+75,حلاوه البوادي 255g,6223000760062,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+83,عسل اسود البوادي 680g,6223000762042,https://images.openfoodfacts.org/images/products/622/300/076/2042/front_en.3.400.jpg,OpenFoodFacts-BC,97,found
+84,عسل اسود البوادي 355g,6223000762066,https://images.openfoodfacts.org/images/products/622/300/076/2066/front_fr.10.400.jpg,OpenFoodFacts-BC,97,found
+78,حلاوه البوادي 1460g,6223000760802,https://eg.jumia.is/cms/Home_26/Stickybanner/1170D60.png,Jumia-EG,75,found_by_name
+80,طحينه البوادي 240g,6223000761021,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+77,حلاوه البوادي 760g,6223000760444,https://eg.jumia.is/cms/Home_26/Stickybanner/1170D60.png,Jumia-EG,75,found_by_name
+82,طحينه البوادي 480g,6223000761038,https://eg.jumia.is/cms/Home_26/Stickybanner/1170D60.png,Jumia-EG,75,found_by_name
+79,حلاوه اجددنا شيكولاته 245g,6772504395381,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+91,مسترده هاينز,6221033173217,https://images.openfoodfacts.org/images/products/622/103/317/3217/front_fr.24.400.jpg,OpenFoodFacts-BC,97,found
+85,هوت صوص هاينز,6221033171138,https://eg.jumia.is/cms/Home_26/Stickybanner/1170D60.png,Jumia-EG,75,found_by_name
+86,باربكيو هاينز,6221033108219,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+89,صوص برجر هاينز,6221033001657,https://eg.jumia.is/cms/Home_26/Stickybanner/1170D60.png,Jumia-EG,75,found_by_name
+87,زجاجه كاتشب هاينز 195g,6221033000988,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+90,فيتراك مربي تين 850g,6221024996023,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+97,مايونيز هاينز 285g,6221033177239,https://images.openfoodfacts.org/images/products/622/103/317/7239/front_en.4.400.jpg,OpenFoodFacts-BC,97,found
+92,كاتشب هاينز ديوباك 285g,6221033101289,https://eg.jumia.is/cms/Home_26/Stickybanner/1170D60.png,Jumia-EG,75,found_by_name
+93,كاتشب هاينز ديوباك حار 285g,6221033101272,https://eg.jumia.is/cms/Home_26/Stickybanner/1170D60.png,Jumia-EG,75,found_by_name
+100,عسل امتنان 800g,6221078111410,https://images.openfoodfacts.org/images/products/622/107/811/1410/front_en.3.400.jpg,OpenFoodFacts-BC,97,found
+95,مايونيز هاينز ديوباك 125g,6221033000780,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+94,كاتشب هاينز ديوباك 125g,6221033000667,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+96,مايونيز هاينز 285g,6221033177239,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+98,مايونيز هاينز 285g,6221033177239,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+99,صوص شيدر ميلكانا,6223001080787,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+101,عسل امتنان 800g عرض,6221078003463,https://eg.jumia.is/cms/Home_26/Stickybanner/1170D60.png,Jumia-EG,75,found_by_name
+102,عسل امتنان 450g,6221078011277,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+103,عسل امتنان250g نواره,6221078011192,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+105,عسل امتنان 250g زهور,6221078111199,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+106,عسل امتنان 125g نواره,6221078766092,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+107,عسل امتنان 125gزهور,6221078766108,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+108,عسل الرحيق المختوم 1kg عرض,6772504469846,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+109,عسل الرحيق المختوم 500g,6772504469013,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+110,عسل الرحيق المختوم 250g,6772504469006,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+112,عسل الرحيق المختوم 380g مكسرات,6333002100305,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+117,عسل ابيض جنه,6221078021184,https://images.openfoodfacts.org/images/products/622/107/802/1184/front_fr.3.400.jpg,OpenFoodFacts-BC,97,found
+111,عسل الرحيق المختوم 170g,6772504469273,https://eg.jumia.is/cms/Home_26/Stickybanner/1170D60.png,Jumia-EG,75,found_by_name
+114,هريسه هاينز,6221033171176,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+115,برطمان صلصه هاينز,6221033000636,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+116,صلصه بيتزا هاينز,6221033127319,https://eg.jumia.is/cms/Home_26/Stickybanner/1170D60.png,Jumia-EG,75,found_by_name
+126,صلصه هاينز 135g,6221033111110,https://images.openfoodfacts.org/images/products/622/103/311/1110/front_fr.10.400.jpg,OpenFoodFacts-BC,97,found
+113,مايونيز هاينز 310g,6221033177314,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+118,صلصه روسو 800g,6224000365752,https://eg.jumia.is/cms/Home_26/Stickybanner/1170D60.png,Jumia-EG,75,found_by_name
+120,صلصه روسو 380g,6224000365417,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+125,صلصه هارفست 800g,6223001061168,https://f.nooncdn.com/mpcms/EN0003/assets/76f12a04-01d4-4796-a157-f472dc51f568.png,Noon-EG,78,found_by_name
+124,صلصه هارفست 375g,6223001060895,https://eg.jumia.is/cms/Home_26/Stickybanner/1170D60.png,Jumia-EG,75,found_by_name
