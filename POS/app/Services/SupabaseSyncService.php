@@ -49,7 +49,8 @@ class SupabaseSyncService
             CURLOPT_HTTPHEADER     => $headers,
             CURLOPT_CONNECTTIMEOUT => 3,   // فشل الاتصال بعد 3 ثوانٍ
             CURLOPT_TIMEOUT        => 5,   // فشل الطلب كاملاً بعد 5 ثوانٍ
-            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYHOST => false,
         ]);
 
         if ($method !== 'GET' && !empty($data)) {
@@ -547,7 +548,8 @@ class SupabaseSyncService
                 CURLOPT_HTTPHEADER     => $headers,
                 CURLOPT_CONNECTTIMEOUT => 15,
                 CURLOPT_TIMEOUT        => 60,
-                CURLOPT_SSL_VERIFYPEER => true,
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => false,
             ]);
 
             $response = curl_exec($ch);
