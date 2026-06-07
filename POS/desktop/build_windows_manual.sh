@@ -51,6 +51,23 @@ if [ -f "$DESKTOP_DIR/icon.png" ]; then
     cp "$DESKTOP_DIR/icon.png" "$APP_DIR/"
 fi
 
+# Copy PHP Backend Application files
+echo "Packaging PHP backend application..."
+RESOURCES_DIR="$APP_OUT_DIR/resources"
+mkdir -p "$RESOURCES_DIR"
+cp -r "$DESKTOP_DIR/../app" "$RESOURCES_DIR/"
+cp -r "$DESKTOP_DIR/../config" "$RESOURCES_DIR/"
+cp -r "$DESKTOP_DIR/../database" "$RESOURCES_DIR/"
+cp -r "$DESKTOP_DIR/../db" "$RESOURCES_DIR/"
+cp -r "$DESKTOP_DIR/../public" "$RESOURCES_DIR/"
+cp -r "$DESKTOP_DIR/../routes" "$RESOURCES_DIR/"
+cp -r "$DESKTOP_DIR/../storage" "$RESOURCES_DIR/"
+cp "$DESKTOP_DIR/../bootstrap.php" "$RESOURCES_DIR/"
+
+# Clean up large backup zip files from build to save space
+rm -f "$RESOURCES_DIR/storage/backups"/*.zip
+
+
 # Zip the package
 echo "Creating zip archive..."
 cd "$DIST_DIR"

@@ -33,6 +33,22 @@ if exist "%DESKTOP_DIR%icon.png" (
     copy "%DESKTOP_DIR%icon.png" "%APP_DIR%\"
 )
 
+echo Packaging PHP backend application...
+set "RESOURCES_DIR=%APP_OUT_DIR%\resources"
+xcopy /e /i /y "%DESKTOP_DIR%..\app" "%RESOURCES_DIR%\app"
+xcopy /e /i /y "%DESKTOP_DIR%..\config" "%RESOURCES_DIR%\config"
+xcopy /e /i /y "%DESKTOP_DIR%..\database" "%RESOURCES_DIR%\database"
+xcopy /e /i /y "%DESKTOP_DIR%..\db" "%RESOURCES_DIR%\db"
+xcopy /e /i /y "%DESKTOP_DIR%..\public" "%RESOURCES_DIR%\public"
+xcopy /e /i /y "%DESKTOP_DIR%..\routes" "%RESOURCES_DIR%\routes"
+xcopy /e /i /y "%DESKTOP_DIR%..\storage" "%RESOURCES_DIR%\storage"
+copy "%DESKTOP_DIR%..\bootstrap.php" "%RESOURCES_DIR%\"
+
+rem Clean up large backup files to keep the build size small
+if exist "%RESOURCES_DIR%\storage\backups" (
+    del /q /f "%RESOURCES_DIR%\storage\backups\*.zip" >nul 2>&1
+)
+
 echo === Build Completed Successfully! ===
 echo Output folder: %APP_OUT_DIR%
 pause
