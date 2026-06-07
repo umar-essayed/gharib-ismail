@@ -18,7 +18,7 @@ function killPort(port, cb) {
     console.log(`Ensuring port ${port} is free...`);
     if (process.platform === 'win32') {
         const cmd = `FOR /F "tokens=5" %P IN ('netstat -aon ^| findstr :${port} ^| findstr LISTENING') DO taskkill /F /PID %P`;
-        exec(cmd, () => {
+        exec(cmd, { windowsHide: true }, () => {
             if (cb) cb();
         });
     } else {
@@ -52,7 +52,8 @@ function startPhpServer(port, phpBinary) {
     ], {
         cwd: rootPath,
         env: process.env, 
-        stdio: ['ignore', logFd, logFd] 
+        stdio: ['ignore', logFd, logFd],
+        windowsHide: true
     });
 
     phpProcess.on('error', (err) => {
@@ -100,7 +101,7 @@ function addBinToSystemPath(binPath) {
             }
         }
     } else if (process.platform === 'win32') {
-        exec(`setx PATH "%PATH%;${binPath}"`, (err) => {
+        exec(`setx PATH "%PATH%;${binPath}"`, { windowsHide: true }, (err) => {
             if (err) console.error('Error setting permanent PATH on Windows:', err);
             else console.log('Successfully set Windows PATH variable.');
         });
@@ -212,7 +213,8 @@ function startTunnel(token, cb) {
             ], {
                 cwd: path.dirname(binaryPath),
                 env: process.env,
-                stdio: ['ignore', logFd, logFd]
+                stdio: ['ignore', logFd, logFd],
+                windowsHide: true
             });
 
         tunnelProcess.on('error', (err) => {
@@ -366,7 +368,7 @@ function checkPhpEnvironment(cb) {
     }
 
     // Try checking if it's in system PATH
-    exec('php -v', (err) => {
+    exec('php -v', { windowsHide: true }, (err) => {
         if (!err) {
             return cb(true, 'php');
         }
@@ -449,7 +451,7 @@ function extractZip(zipPath, destDir, cb) {
     console.log(`Extracting ${zipPath} to ${destDir}...`);
     // Try native tar first (available in Windows 10/11)
     const tarCmd = `tar -xf "${zipPath}" -C "${destDir}"`;
-    exec(tarCmd, (err, stdout, stderr) => {
+    exec(tarCmd, { windowsHide: true }, (err, stdout, stderr) => {
         if (!err) {
             console.log('Extraction completed via native tar.');
             return cb(null);
@@ -458,7 +460,7 @@ function extractZip(zipPath, destDir, cb) {
         
         // Try PowerShell Expand-Archive as fallback
         const psCmd = `powershell -Command "Expand-Archive -Path '${zipPath}' -DestinationPath '${destDir}' -Force"`;
-        exec(psCmd, (err2, stdout2, stderr2) => {
+        exec(psCmd, { windowsHide: true }, (err2, stdout2, stderr2) => {
             if (!err2) {
                 console.log('Extraction completed via PowerShell.');
                 return cb(null);
