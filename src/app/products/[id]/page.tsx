@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { mockProducts } from '@/lib/mockData';
 import type { Metadata } from 'next';
 
-import { isUuid } from '@/lib/utils';
+import { isUuid, slugify } from '@/lib/utils';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -12,6 +12,7 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
+  const decodedId = decodeURIComponent(id);
   
   let productName = 'تفاصيل المنتج';
   let productDesc = 'تصفح تفاصيل وأسعار المنتج في الناصرية جملة ماركت';
@@ -20,15 +21,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   try {
     let dbProd: any = null;
-    if (isUuid(id)) {
+    if (isUuid(decodedId)) {
       const { data } = await supabase
         .from('products')
         .select('*')
-        .eq('id', id)
+        .eq('id', decodedId)
         .single();
       dbProd = data;
     } else {
-      const pattern = id.split('-').join('%');
+      const pattern = decodedId.split('-').join('%');
       const { data } = await supabase
         .from('products')
         .select('*')
@@ -46,7 +47,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       const priceVal = Number(dbProd.sale_price || dbProd.price);
       productPriceText = ` - السعر: ${priceVal.toFixed(2)} ج.م`;
     } else {
-      const mockP = mockProducts.find(p => p.id === id);
+      const mockP = mockProducts.find(p => p.id === decodedId || slugify(p.name) === decodedId);
       if (mockP) {
         productName = mockP.name;
         productDesc = mockP.description || productDesc;
@@ -68,7 +69,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title: `${productName}${productPriceText} | الناصرية جملة ماركت`,
       description: `${productDesc}. اطلبه الآن بسعر التجزئة والجملة والتوصيل فوري.`,
-      url: `https://nasriya-jomla-market.com/products/${id}`,
+      url: `https://nasriya-jomla-market.com/products/${decodedId}`,
       siteName: "الناصرية جملة ماركت",
       images: [
         {

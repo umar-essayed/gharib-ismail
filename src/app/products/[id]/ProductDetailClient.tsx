@@ -8,7 +8,7 @@ import Navbar from '@/components/Navbar';
 import ProductCard from '@/components/ProductCard';
 import { Product } from '@/types';
 import { supabase } from '@/lib/supabase';
-import { isUuid } from '@/lib/utils';
+import { isUuid, slugify } from '@/lib/utils';
 import { mockProducts } from '@/lib/mockData';
 import { 
   ArrowRight, 
@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 
 export default function ProductDetailClient({ id }: { id: string }) {
+  const decodedId = decodeURIComponent(id);
   const router = useRouter();
   const { addToCart, toggleWishlist, isInWishlist } = useCart();
 
@@ -239,15 +240,15 @@ export default function ProductDetailClient({ id }: { id: string }) {
         setLoading(true);
         
         let dbProd: any = null;
-        if (isUuid(id)) {
+        if (isUuid(decodedId)) {
           const { data } = await supabase
             .from('products')
             .select('*')
-            .eq('id', id)
+            .eq('id', decodedId)
             .single();
           dbProd = data;
         } else {
-          const pattern = id.split('-').join('%');
+          const pattern = decodedId.split('-').join('%');
           const { data } = await supabase
             .from('products')
             .select('*')
@@ -269,7 +270,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
           } as Product;
         } else {
           // Fallback to mock data
-          currentProd = mockProducts.find(p => p.id === id) || null;
+          currentProd = mockProducts.find(p => p.id === decodedId || slugify(p.name) === decodedId) || null;
         }
 
         if (currentProd) {
@@ -381,7 +382,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
       } catch (err) {
         console.error('Failed to load product details:', err);
         // Direct mock fallback on crash
-        const mockP = mockProducts.find(p => p.id === id) || null;
+        const mockP = mockProducts.find(p => p.id === decodedId || slugify(p.name) === decodedId) || null;
         if (mockP) {
           setProduct(mockP);
           setRelatedProducts(mockProducts.filter(p => p.category_id === mockP.category_id && p.id !== mockP.id).slice(0, 4));
@@ -392,7 +393,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
     }
 
     loadProductData();
-  }, [id]);
+  }, [decodedId]);
 
   const handleAddToCart = () => {
     if (product) {
