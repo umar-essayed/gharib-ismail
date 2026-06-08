@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   
   let productName = 'تفاصيل المنتج';
   let productDesc = 'تصفح تفاصيل وأسعار المنتج في الناصرية جملة ماركت';
-  let productImage = 'https://nasriya-jomla-market.com/logo.jpeg';
+  let productImage = 'https://www.nassryaa-gomla.markets/logo.jpeg';
   let productPriceText = '';
 
   try {
@@ -61,7 +61,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   // Parse images and pick first one
-  const cleanImage = productImage ? productImage.split(',')[0].trim() : 'https://nasriya-jomla-market.com/logo.jpeg';
+  const cleanImage = productImage ? productImage.split(',')[0].trim() : 'https://www.nassryaa-gomla.markets/logo.jpeg';
 
   return {
     title: `${productName}${productPriceText}`,
@@ -69,7 +69,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title: `${productName}${productPriceText} | الناصرية جملة ماركت`,
       description: `${productDesc}. اطلبه الآن بسعر التجزئة والجملة والتوصيل فوري.`,
-      url: `https://nasriya-jomla-market.com/products/${decodedId}`,
+      url: `https://www.nassryaa-gomla.markets/products/${decodedId}`,
       siteName: "الناصرية جملة ماركت",
       images: [
         {

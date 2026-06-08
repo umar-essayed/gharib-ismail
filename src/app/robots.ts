@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: ['/admin/', '/api/', '/profile/'],
     },
-    sitemap: 'https://nasriya-jomla-market.com/sitemap.xml',
+    sitemap: 'https://www.nassryaa-gomla.markets/sitemap.xml',
   };
 }

@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { slugify } from '@/lib/utils';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = 'https://nasriya-jomla-market.com';
+  const baseUrl = 'https://www.nassryaa-gomla.markets';
 
   const routes = [
     {

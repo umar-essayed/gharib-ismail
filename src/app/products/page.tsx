@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "كتالوج المنتجات وأسعار الجملة والتجزئة | الناصرية جملة ماركت",
     description: "تصفح جميع السلع الغذائية، البقالة، المجمدات، والمنظفات بأرخص أسعار الجملة والتجزئة بالعامرية والناصرية القديمة بالإسكندرية.",
-    url: "https://nasriya-jomla-market.com/products",
+    url: "https://www.nassryaa-gomla.markets/products",
   }
 };
 

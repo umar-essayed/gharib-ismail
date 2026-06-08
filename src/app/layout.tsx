@@ -3,7 +3,7 @@ import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://nasriya-jomla-market.com'),
+  metadataBase: new URL('https://www.nassryaa-gomla.markets'),
   title: {
     default: "الناصرية جملة ماركت | أرخص أسعار الجملة والتجزئة بالعامرية والإسكندرية",
     template: "%s | الناصرية جملة ماركت"
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "الناصرية جملة ماركت | أرخص أسعار الجملة والتجزئة بالعامرية والإسكندرية",
     description: "الوجهة الأولى لتسوق المواد الغذائية، البقالة، المجمدات، والمنظفات بسعر الجملة والتجزئة بغرب الإسكندرية والعامرية. احصل على نقاط ذهبية وتوصيل فوري لباب بيتك.",
-    url: "https://nasriya-jomla-market.com",
+    url: "https://www.nassryaa-gomla.markets",
     siteName: "الناصرية جملة ماركت",
     images: [
       {
@@ -52,7 +52,7 @@ export const metadata: Metadata = {
     images: ["/logo.jpeg"],
   },
   alternates: {
-    canonical: "https://nasriya-jomla-market.com",
+    canonical: "https://www.nassryaa-gomla.markets",
   },
   robots: {
     index: true,
@@ -86,9 +86,9 @@ export default function RootLayout({
               "@context": "https://schema.org",
               "@type": "LocalBusiness",
               "name": "الناصرية جملة ماركت",
-              "image": "https://nasriya-jomla-market.com/logo.jpeg",
-              "@id": "https://nasriya-jomla-market.com/#localbusiness",
-              "url": "https://nasriya-jomla-market.com",
+              "image": "https://www.nassryaa-gomla.markets/logo.jpeg",
+              "@id": "https://www.nassryaa-gomla.markets/#localbusiness",
+              "url": "https://www.nassryaa-gomla.markets",
               "telephone": "+201211879341",
               "priceRange": "$$",
               "address": {
