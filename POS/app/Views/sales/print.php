@@ -40,20 +40,16 @@ if ($isRetailInvoice) {
         margin: 0 !important;
         padding: 0 !important;
         background: #fff !important;
-        width: 80mm !important;
-        max-width: 80mm !important;
     }
 
     .print-container {
         padding: 0 !important;
         margin: 0 !important;
-        width: 80mm !important;
-        max-width: 80mm !important;
     }
 
     .receipt {
-        width: 74mm !important;
-        margin-left: 2mm !important;
+        width: 72mm !important;
+        margin-left: 4mm !important;
         margin-right: auto !important;
         padding: 1.2mm 0;
         box-sizing: border-box;
@@ -256,12 +252,10 @@ if ($isRetailInvoice) {
         html, body, .print-page, .print-container {
             margin: 0 !important;
             padding: 0 !important;
-            width: 80mm !important;
-            max-width: 80mm !important;
         }
         .receipt {
-            width: 74mm !important;
-            margin-left: 2mm !important;
+            width: 72mm !important;
+            margin-left: 4mm !important;
             margin-right: auto !important;
         }
         .receipt, .receipt * {
