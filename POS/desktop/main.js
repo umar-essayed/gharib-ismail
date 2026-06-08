@@ -722,17 +722,19 @@ app.on('quit', () => {
 
 // IPC Handler to trigger native silent printing
 ipcMain.on('print-silent', (event, printerName, isLabel = false) => {
-    // Set page size dynamically: 50x30mm for barcode labels, 80x300mm for receipts
-    const labelPageSize  = { width: 50000,  height: 30000  }; // 50mm × 30mm in microns
-    const receiptPageSize = { width: 80000,  height: 300000 }; // 80mm × 300mm in microns
+    // Label: fixed 50x30mm in microns (matches @page { size: 50mm 30mm })
+    // Receipt: use named 'A4' so Chromium lets the CSS @page { size: 80mm auto } override
+    //          — sending a fixed height (300000µm) conflicts with CSS 'auto' height
+    //            and causes CUPS on Linux to reject the job
+    const labelPageSize = { width: 50000, height: 30000 }; // 50mm × 30mm in microns
 
     const printOptions = {
         silent: true,
         printBackground: true,
         margins: {
-            marginType: 'none' // إلغاء الهوامش تماماً لمنع تصغير الفاتورة لحجم النصف مللي
+            marginType: 'none'
         },
-        pageSize: isLabel ? labelPageSize : receiptPageSize
+        pageSize: isLabel ? labelPageSize : 'A4'
     };
     if (printerName) {
         printOptions.deviceName = printerName;
