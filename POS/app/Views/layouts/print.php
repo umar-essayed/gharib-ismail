@@ -7,22 +7,32 @@
     <link rel="stylesheet" href="<?= url('/assets/vendor/bootstrap/bootstrap.rtl.min.css') ?>">
     <link rel="stylesheet" href="<?= url('/assets/css/app.css') ?>">
     <style>
-        body.print-page {
-            margin: 0;
-            background: #fff;
+        html, body.print-page {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #fff !important;
+            width: 100%;
         }
 
         .print-container {
             width: 100%;
             max-width: 100%;
-            padding: 12px;
+            padding: 0; /* تم تصفير الهوامش الافتراضية لضمان سلامة الملصقات الحرارية */
             margin: 0;
             box-sizing: border-box;
         }
 
+        /* إذا كنت تريد مسافة جمالية للفواتير الكبيرة على الشاشة فقط دون التأثير على الملصقات */
+        @media screen {
+            .print-container {
+                padding: 12px;
+            }
+        }
+
         @media print {
             .print-container {
-                padding: 0;
+                padding: 0 !important;
+                margin: 0 !important;
             }
         }
     </style>
@@ -82,20 +92,16 @@
 
     window.addEventListener('load', () => {
         if (shouldPrint) {
-            // Force Blink layout pass initially
-            const forceLayoutInit = document.body.offsetHeight;
-
             setTimeout(() => {
                 try {
                     if (window.electronAPI) {
                         let printerName = '';
+                        // فحص ذكي: إذا كان الرابط يحتوي على باركود، يتم سحب اسم طابعة الباركود المخصصة
                         if (window.location.pathname.includes('/barcode/print')) {
                             printerName = <?= json_encode(\App\Services\SettingsService::get('label_printer', '')) ?> || <?= json_encode(\App\Services\SettingsService::get('default_printer', '')) ?>;
                         } else {
                             printerName = <?= json_encode(\App\Services\SettingsService::get('default_printer', '')) ?>;
                         }
-                        // Force Blink layout pass again right before print trigger
-                        const forceLayoutPrint = document.body.offsetHeight;
                         window.electronAPI.printSilent(printerName);
                     } else {
                         window.print();
@@ -103,7 +109,7 @@
                 } catch (e) {
                     finish('pos-print-error', 'تعذر بدء الطباعة');
                 }
-            }, 1000);
+            }, 400);
 
             if (window.electronAPI) {
                 if (typeof window.electronAPI.onPrintFinished === 'function') {
@@ -117,7 +123,7 @@
                 } else {
                     setTimeout(() => {
                         finish('pos-print-complete');
-                    }, 2500);
+                    }, 1500);
                 }
                 return;
             }

@@ -726,7 +726,11 @@ ipcMain.on('print-silent', (event, printerName) => {
         silent: true,
         printBackground: true,
         margins: {
-            marginType: 'printableArea'
+            marginType: 'none' // إلغاء الهوامش تماماً لمنع تصغير الفاتورة لحجم النصف مللي
+        },
+        pageSize: {
+            width: 80000,   // 80mm محسوبة بالـ Microns ليفهمها محرك الكروميوم
+            height: 300000  // ارتفاع افتراضي طويل (300mm) لكي تسحب الطابعة براحتها دون انقطاع الفاتورة
         }
     };
     if (printerName) {
