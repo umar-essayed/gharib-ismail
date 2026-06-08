@@ -133,9 +133,14 @@ function ProductsContent() {
 
   // Trigger product fetch on search or category url change
   useEffect(() => {
+    if (urlSearch === 'جملة' || urlSearch === 'جمله') {
+      alert('ميزة طلب كرتونة الجملة ستكون متوفرة قريباً! 🛒');
+      router.push('/products');
+      return;
+    }
     setPage(0);
     fetchProducts(0, urlCategory || null, urlSearch || '', false);
-  }, [urlSearch, urlCategory]);
+  }, [urlSearch, urlCategory, router]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
