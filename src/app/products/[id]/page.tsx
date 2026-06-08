@@ -4,6 +4,8 @@ import { supabase } from '@/lib/supabase';
 import { mockProducts } from '@/lib/mockData';
 import type { Metadata } from 'next';
 
+import { isUuid } from '@/lib/utils';
+
 interface Props {
   params: Promise<{ id: string }>;
 }
@@ -17,11 +19,25 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   let productPriceText = '';
 
   try {
-    const { data: dbProd } = await supabase
-      .from('products')
-      .select('*')
-      .eq('id', id)
-      .single();
+    let dbProd: any = null;
+    if (isUuid(id)) {
+      const { data } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', id)
+        .single();
+      dbProd = data;
+    } else {
+      const pattern = id.split('-').join('%');
+      const { data } = await supabase
+        .from('products')
+        .select('*')
+        .ilike('name', pattern)
+        .limit(1);
+      if (data && data.length > 0) {
+        dbProd = data[0];
+      }
+    }
 
     if (dbProd) {
       productName = dbProd.name;

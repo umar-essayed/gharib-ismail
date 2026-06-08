@@ -8,6 +8,7 @@ import Navbar from '@/components/Navbar';
 import ProductCard from '@/components/ProductCard';
 import { Product } from '@/types';
 import { supabase } from '@/lib/supabase';
+import { isUuid } from '@/lib/utils';
 import { mockProducts } from '@/lib/mockData';
 import { 
   ArrowRight, 
@@ -116,12 +117,14 @@ export default function ProductDetailClient({ id }: { id: string }) {
 
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!reviewName.trim()) return;
+    if (!reviewName.trim() || !product) return;
+
+    const activeProdId = product.id;
 
     try {
       setSubmittingReview(true);
       const newReviewObj = {
-        product_id: id,
+        product_id: activeProdId,
         user_name: reviewName.trim(),
         rating: reviewRating,
         comment: reviewComment.trim() || null
@@ -136,11 +139,11 @@ export default function ProductDetailClient({ id }: { id: string }) {
       if (error) {
         console.warn('Could not insert review in remote database, saving locally. Error:', error);
         // Fallback to local storage review adding
-        const localReviewsKey = `mock_reviews_${id}`;
+        const localReviewsKey = `mock_reviews_${activeProdId}`;
         const existingReviews = [...reviews];
         const localReview = {
           id: `rev-${Date.now()}`,
-          product_id: id,
+          product_id: activeProdId,
           user_name: reviewName.trim(),
           rating: reviewRating,
           comment: reviewComment.trim() || undefined,
@@ -153,11 +156,11 @@ export default function ProductDetailClient({ id }: { id: string }) {
         setReviews(prev => [data[0], ...prev]);
       } else {
         // Fallback if data is empty but no error
-        const localReviewsKey = `mock_reviews_${id}`;
+        const localReviewsKey = `mock_reviews_${activeProdId}`;
         const existingReviews = [...reviews];
         const localReview = {
           id: `rev-${Date.now()}`,
-          product_id: id,
+          product_id: activeProdId,
           user_name: reviewName.trim(),
           rating: reviewRating,
           comment: reviewComment.trim() || undefined,
@@ -177,11 +180,11 @@ export default function ProductDetailClient({ id }: { id: string }) {
     } catch (err) {
       console.error('Submit review error:', err);
       // Local storage fallback
-      const localReviewsKey = `mock_reviews_${id}`;
+      const localReviewsKey = `mock_reviews_${activeProdId}`;
       const existingReviews = [...reviews];
       const localReview = {
         id: `rev-${Date.now()}`,
-        product_id: id,
+        product_id: activeProdId,
         user_name: reviewName.trim(),
         rating: reviewRating,
         comment: reviewComment.trim() || undefined,
@@ -234,12 +237,26 @@ export default function ProductDetailClient({ id }: { id: string }) {
     async function loadProductData() {
       try {
         setLoading(true);
-        // Fetch current product
-        const { data: dbProd, error } = await supabase
-          .from('products')
-          .select('*')
-          .eq('id', id)
-          .single();
+        
+        let dbProd: any = null;
+        if (isUuid(id)) {
+          const { data } = await supabase
+            .from('products')
+            .select('*')
+            .eq('id', id)
+            .single();
+          dbProd = data;
+        } else {
+          const pattern = id.split('-').join('%');
+          const { data } = await supabase
+            .from('products')
+            .select('*')
+            .ilike('name', pattern)
+            .limit(1);
+          if (data && data.length > 0) {
+            dbProd = data[0];
+          }
+        }
 
         let currentProd: Product | null = null;
 
@@ -285,17 +302,50 @@ export default function ProductDetailClient({ id }: { id: string }) {
         }
 
         // Load reviews
-        try {
-          const { data: dbReviews, error: reviewsError } = await supabase
-            .from('product_reviews')
-            .select('*')
-            .eq('product_id', id)
-            .order('created_at', { ascending: false });
+        if (currentProd) {
+          try {
+            const { data: dbReviews, error: reviewsError } = await supabase
+              .from('product_reviews')
+              .select('*')
+              .eq('product_id', currentProd.id)
+              .order('created_at', { ascending: false });
 
-          if (reviewsError) {
-            console.warn('Reviews table might be missing or inaccessible, falling back to mock storage. Error:', reviewsError);
+            if (reviewsError) {
+              console.warn('Reviews table might be missing or inaccessible, falling back to mock storage. Error:', reviewsError);
+              setReviewsDbWarning(true);
+              const localReviewsKey = `mock_reviews_${currentProd.id}`;
+              const localReviews = localStorage.getItem(localReviewsKey);
+              if (localReviews) {
+                setReviews(JSON.parse(localReviews));
+              } else {
+                const initialMockReviews = [
+                  {
+                    id: 'rev-1',
+                    product_id: currentProd.id,
+                    user_name: 'أحمد محمود',
+                    rating: 5,
+                    comment: 'المنتج ممتاز جداً وتوصيل سريع للغاية! الجودة عالية ومطابق للوصف تماماً.',
+                    created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+                  },
+                  {
+                    id: 'rev-2',
+                    product_id: currentProd.id,
+                    user_name: 'سارة أحمد',
+                    rating: 4,
+                    comment: 'جودة ممتازة وسعر مناسب جداً مقارنة بالسوق المحلي. سأكرر التجربة بالتأكيد.',
+                    created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
+                  }
+                ];
+                localStorage.setItem(localReviewsKey, JSON.stringify(initialMockReviews));
+                setReviews(initialMockReviews);
+              }
+            } else if (dbReviews) {
+              setReviews(dbReviews);
+            }
+          } catch (reviewsErr) {
+            console.error('Failed to load reviews:', reviewsErr);
             setReviewsDbWarning(true);
-            const localReviewsKey = `mock_reviews_${id}`;
+            const localReviewsKey = `mock_reviews_${currentProd.id}`;
             const localReviews = localStorage.getItem(localReviewsKey);
             if (localReviews) {
               setReviews(JSON.parse(localReviews));
@@ -303,7 +353,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
               const initialMockReviews = [
                 {
                   id: 'rev-1',
-                  product_id: id,
+                  product_id: currentProd.id,
                   user_name: 'أحمد محمود',
                   rating: 5,
                   comment: 'المنتج ممتاز جداً وتوصيل سريع للغاية! الجودة عالية ومطابق للوصف تماماً.',
@@ -311,7 +361,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
                 },
                 {
                   id: 'rev-2',
-                  product_id: id,
+                  product_id: currentProd.id,
                   user_name: 'سارة أحمد',
                   rating: 4,
                   comment: 'جودة ممتازة وسعر مناسب جداً مقارنة بالسوق المحلي. سأكرر التجربة بالتأكيد.',
@@ -321,39 +371,10 @@ export default function ProductDetailClient({ id }: { id: string }) {
               localStorage.setItem(localReviewsKey, JSON.stringify(initialMockReviews));
               setReviews(initialMockReviews);
             }
-          } else if (dbReviews) {
-            setReviews(dbReviews);
+          } finally {
+            setLoadingReviews(false);
           }
-        } catch (reviewsErr) {
-          console.error('Failed to load reviews:', reviewsErr);
-          setReviewsDbWarning(true);
-          const localReviewsKey = `mock_reviews_${id}`;
-          const localReviews = localStorage.getItem(localReviewsKey);
-          if (localReviews) {
-            setReviews(JSON.parse(localReviews));
-          } else {
-            const initialMockReviews = [
-              {
-                id: 'rev-1',
-                product_id: id,
-                user_name: 'أحمد محمود',
-                rating: 5,
-                comment: 'المنتج ممتاز جداً وتوصيل سريع للغاية! الجودة عالية ومطابق للوصف تماماً.',
-                created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-              },
-              {
-                id: 'rev-2',
-                product_id: id,
-                user_name: 'سارة أحمد',
-                rating: 4,
-                comment: 'جودة ممتازة وسعر مناسب جداً مقارنة بالسوق المحلي. سأكرر التجربة بالتأكيد.',
-                created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
-              }
-            ];
-            localStorage.setItem(localReviewsKey, JSON.stringify(initialMockReviews));
-            setReviews(initialMockReviews);
-          }
-        } finally {
+        } else {
           setLoadingReviews(false);
         }
 

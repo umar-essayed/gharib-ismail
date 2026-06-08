@@ -556,7 +556,7 @@ function HomeContent() {
             {categories.map((cat) => (
               <button
                 key={cat.id}
-                onClick={() => router.push(`/products?category=${cat.id}`)}
+                onClick={() => router.push(`/products?category=${cat.slug || cat.id}`)}
                 className="flex flex-col items-center gap-2.5 flex-shrink-0 group focus:outline-none cursor-pointer"
               >
                 <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full border border-slate-200 group-hover:border-primary flex items-center justify-center overflow-hidden p-1 transition-all duration-300 bg-white shadow-xs group-hover:shadow-md">

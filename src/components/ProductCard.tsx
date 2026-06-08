@@ -5,6 +5,7 @@ import { Product } from '@/types';
 import { useCart } from '@/context/CartContext';
 import { Plus, Check, Heart, Share2 } from 'lucide-react';
 import Link from 'next/link';
+import { slugify } from '@/lib/utils';
 
 interface ProductCardProps {
   product: Product;
@@ -22,7 +23,7 @@ export default function ProductCard({ product, layout = 'grid' }: ProductCardPro
     e.stopPropagation();
     if (typeof window === 'undefined') return;
     
-    const shareUrl = `${window.location.origin}/products/${product.id}`;
+    const shareUrl = `${window.location.origin}/products/${slugify(product.name)}`;
     const shareTitle = product.name;
     const activePrice = product.sale_price || product.price;
     const shareText = `شاهد هذا المنتج الرائع "${product.name}" في الناصرية جملة ماركت بسعر ${activePrice.toFixed(2)} ج.م!`;
@@ -72,7 +73,7 @@ export default function ProductCard({ product, layout = 'grid' }: ProductCardPro
         
         {/* Product Image Left/Right */}
         <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gray-50 border border-gray-100 rounded-xl sm:rounded-2xl overflow-hidden relative flex-shrink-0">
-          <Link href={`/products/${product.id}`} className="block w-full h-full">
+          <Link href={`/products/${slugify(product.name)}`} className="block w-full h-full">
             {product.image_url ? (
               <img 
                 src={product.image_url} 
@@ -127,7 +128,7 @@ export default function ProductCard({ product, layout = 'grid' }: ProductCardPro
                 )}
               </button>
               <h3 className="text-xs sm:text-base font-bold text-gray-900 group-hover:text-primary transition-colors line-clamp-1 flex-1">
-                <Link href={`/products/${product.id}`} className="hover:text-primary transition-colors">
+                <Link href={`/products/${slugify(product.name)}`} className="hover:text-primary transition-colors">
                   {product.name}
                 </Link>
               </h3>
@@ -230,7 +231,7 @@ export default function ProductCard({ product, layout = 'grid' }: ProductCardPro
 
       {/* Product Image */}
       <div className="w-full h-28 sm:h-44 bg-gray-50 border-b border-gray-100 overflow-hidden relative">
-        <Link href={`/products/${product.id}`} className="block w-full h-full animate-fade-in">
+        <Link href={`/products/${slugify(product.name)}`} className="block w-full h-full animate-fade-in">
           {product.image_url ? (
             <img 
               src={product.image_url} 
@@ -256,7 +257,7 @@ export default function ProductCard({ product, layout = 'grid' }: ProductCardPro
       <div className="p-3 sm:p-5 flex-1 flex flex-col justify-between">
         <div>
           <h3 className="text-xs sm:text-base font-bold text-gray-900 group-hover:text-primary transition-colors line-clamp-1">
-            <Link href={`/products/${product.id}`} className="hover:text-primary transition-colors">
+            <Link href={`/products/${slugify(product.name)}`} className="hover:text-primary transition-colors">
               {product.name}
             </Link>
           </h3>

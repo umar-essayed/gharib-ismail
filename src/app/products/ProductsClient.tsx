@@ -8,6 +8,7 @@ import ProductCard from '@/components/ProductCard';
 import { Product, Category } from '@/types';
 import { supabase } from '@/lib/supabase';
 import { mockCategories, mockProducts } from '@/lib/mockData';
+import { isUuid } from '@/lib/utils';
 import { Search, MapPin, Phone, Mail, Send } from 'lucide-react';
 import Link from 'next/link';
 
@@ -63,7 +64,18 @@ function ProductsContent() {
         .eq('is_available', true);
 
       if (categoryId) {
-        query = query.eq('category_id', categoryId);
+        let resolvedCategoryId = categoryId;
+        if (!isUuid(categoryId)) {
+          const { data: catData } = await supabase
+            .from('categories')
+            .select('id')
+            .eq('slug', categoryId)
+            .single();
+          if (catData) {
+            resolvedCategoryId = catData.id;
+          }
+        }
+        query = query.eq('category_id', resolvedCategoryId);
       }
 
       if (searchString) {
@@ -148,9 +160,16 @@ function ProductsContent() {
   };
 
   const handleCategorySelect = (categoryId: string | null) => {
-    setSelectedCategory(categoryId);
+    let slugOrId = categoryId;
+    if (categoryId) {
+      const found = categories.find(c => c.id === categoryId || c.slug === categoryId);
+      if (found) {
+        slugOrId = found.slug || found.id;
+      }
+    }
+    setSelectedCategory(slugOrId);
     const searchPart = searchVal ? `search=${encodeURIComponent(searchVal)}` : '';
-    const catPart = categoryId ? `category=${categoryId}` : '';
+    const catPart = slugOrId ? `category=${slugOrId}` : '';
     const query = [searchPart, catPart].filter(Boolean).join('&');
     router.push(`/products${query ? `?${query}` : ''}`);
   };
@@ -207,9 +226,9 @@ function ProductsContent() {
                 key={cat.id}
                 onClick={() => handleCategorySelect(cat.id)}
                 className={`px-4 py-2 rounded-lg font-bold border transition-all whitespace-nowrap cursor-pointer ${
-                  selectedCategory === cat.id
+                  selectedCategory === cat.id || selectedCategory === cat.slug
                     ? 'bg-primary text-white border-primary shadow-xs'
-                    : 'bg-gray-50 text-gray-555 border-gray-200 hover:bg-gray-100'
+                    : 'bg-gray-50 text-gray-550 border-gray-200 hover:bg-gray-100'
                 }`}
               >
                 {cat.name}

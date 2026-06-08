@@ -329,7 +329,7 @@ export default function Navbar() {
                 <button
                   key={cat.id}
                   type="button"
-                  onClick={() => router.push(`/products?category=${cat.id}`)}
+                  onClick={() => router.push(`/products?category=${cat.slug || cat.id}`)}
                   className="px-4 py-2 bg-white text-gray-750 border border-gray-200/85 rounded-full whitespace-nowrap hover:bg-slate-50 transition-all flex items-center gap-1 shadow-xs cursor-pointer"
                 >
                   <span>{cat.name}</span>
@@ -359,7 +359,7 @@ export default function Navbar() {
                       key={cat.id}
                       onClick={() => {
                         setIsCategoriesOpen(false);
-                        router.push(`/products?category=${cat.id}`);
+                        router.push(`/products?category=${cat.slug || cat.id}`);
                       }}
                       className="w-full text-right px-4 py-2 hover:bg-primary/5 hover:text-primary text-gray-700 font-bold text-xs cursor-pointer flex items-center justify-between flex-row-reverse"
                     >
@@ -512,7 +512,7 @@ export default function Navbar() {
                           key={cat.id}
                           onClick={() => {
                             setIsMobileMenuOpen(false);
-                            router.push(`/products?category=${cat.id}`);
+                            router.push(`/products?category=${cat.slug || cat.id}`);
                           }}
                           className="text-right px-3 py-2 bg-slate-50 border border-slate-200/60 rounded-xl font-bold text-[11px] text-gray-750 hover:bg-primary/5 hover:text-primary hover:border-primary/20 transition-all cursor-pointer flex items-center justify-between flex-row-reverse gap-1 min-w-0"
                         >

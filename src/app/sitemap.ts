@@ -1,6 +1,8 @@
 import { MetadataRoute } from 'next';
 import { supabase } from '@/lib/supabase';
 
+import { slugify } from '@/lib/utils';
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://nasriya-jomla-market.com';
 
@@ -34,12 +36,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const { data: products } = await supabase
       .from('products')
-      .select('id, created_at')
+      .select('id, name, created_at')
       .eq('is_available', true);
 
     if (products) {
       const productRoutes = products.map((prod) => ({
-        url: `${baseUrl}/products/${prod.id}`,
+        url: `${baseUrl}/products/${slugify(prod.name)}`,
         lastModified: prod.created_at ? new Date(prod.created_at) : new Date(),
         changeFrequency: 'weekly' as const,
         priority: 0.7,
