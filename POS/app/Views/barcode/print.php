@@ -164,6 +164,13 @@ html, body {
         margin: 0 !important;
         line-height: 1 !important;
     }
+
+    .barcode-svg {
+        margin: 0 auto !important;
+        display: block !important;
+        max-width: 90% !important; /* إجبار الباركود على التصغير إذا تجاوز العرض */
+        height: auto !important;   /* الحفاظ على التناسب الهندسي */
+    }
 }
 </style>
 
@@ -209,10 +216,10 @@ window.addEventListener('DOMContentLoaded', () => {
             try {
                 JsBarcode(svg, val, {
                     format: "CODE128",
-                    width: 1.15,      /* خطوط أرفع لتجنب الخروج عن الحافة اليمنى */
+                    width: 1,         /* أرفع من 1.15 لخطوط أنحف وقابلة للمسح */
                     height: 18,
                     displayValue: true,
-                    fontSize: 9,
+                    fontSize: 10,     /* أكبر قليلاً لتعويض تقليص العرض */
                     textMargin: 1,
                     fontOptions: "bold",
                     margin: 0
