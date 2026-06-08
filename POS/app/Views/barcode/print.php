@@ -109,23 +109,18 @@ html, body {
     }
 
     .label-card {
-        width: 44mm !important;          /* أضيق لتعويض الهامش اليمين الأكبر */
-        height: 29mm !important;
-        margin-top: 0.5mm !important;
-        margin-left: auto !important;
-        margin-right: 5mm !important;    /* مضاعف لدفع الكارت لليسار */
-        margin-bottom: 0 !important;
-        padding: 1mm !important;
+        width: 46mm !important;
+        height: 27mm !important;
+        margin: 1.5mm auto 0 auto !important;
+        /* إزاحة قسرية لليسار لتجاوز هامش الأجهزة */
+        transform: translateX(-4mm) !important;
+        position: relative !important;
+        padding: 0 !important;
         box-sizing: border-box !important;
         page-break-after: always !important;
         page-break-inside: avoid !important;
-
-        /* Flexbox لضمان ظهور السعر دائماً داخل الحدود */
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: space-between !important;
-        align-items: center !important;
         overflow: hidden !important;
+        background: #fff !important;
     }
 
     .product-name {
@@ -151,17 +146,23 @@ html, body {
         display: flex !important;
         justify-content: center !important;
         align-items: center !important;
-        flex-grow: 1 !important;         /* يأخذ المساحة الوسطى المتبقية */
+        flex-grow: 1 !important;
     }
 
     .product-price {
-        font-size: 9pt !important;
-        font-weight: bold !important;
+        position: absolute !important;
+        top: 14.5mm !important;           /* تثبيت من الأعلى */
+        bottom: auto !important;
+        left: 5% !important;
+        width: 90% !important;
         text-align: center !important;
-        margin: 0 !important;
-        padding-top: 0.5mm !important;
+        font-size: 9.5pt !important;
+        font-weight: bold !important;
+        direction: rtl !important;
         border-top: 1px dashed #000 !important;
-        width: 100% !important;
+        padding-top: 1.5mm !important;
+        margin: 0 !important;
+        line-height: 1 !important;
     }
 }
 </style>
@@ -208,8 +209,8 @@ window.addEventListener('DOMContentLoaded', () => {
             try {
                 JsBarcode(svg, val, {
                     format: "CODE128",
-                    width: 1.4,
-                    height: 22,       /* مخفض لضمان مساحة كافية للسعر */
+                    width: 1.15,      /* خطوط أرفع لتجنب الخروج عن الحافة اليمنى */
+                    height: 18,
                     displayValue: true,
                     fontSize: 9,
                     textMargin: 1,
