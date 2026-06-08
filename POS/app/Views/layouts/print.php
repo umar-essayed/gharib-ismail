@@ -82,6 +82,9 @@
 
     window.addEventListener('load', () => {
         if (shouldPrint) {
+            // Force Blink layout pass initially
+            const forceLayoutInit = document.body.offsetHeight;
+
             setTimeout(() => {
                 try {
                     if (window.electronAPI) {
@@ -91,6 +94,8 @@
                         } else {
                             printerName = <?= json_encode(\App\Services\SettingsService::get('default_printer', '')) ?>;
                         }
+                        // Force Blink layout pass again right before print trigger
+                        const forceLayoutPrint = document.body.offsetHeight;
                         window.electronAPI.printSilent(printerName);
                     } else {
                         window.print();
@@ -98,7 +103,7 @@
                 } catch (e) {
                     finish('pos-print-error', 'تعذر بدء الطباعة');
                 }
-            }, 400);
+            }, 1000);
 
             if (window.electronAPI) {
                 if (typeof window.electronAPI.onPrintFinished === 'function') {
@@ -112,7 +117,7 @@
                 } else {
                     setTimeout(() => {
                         finish('pos-print-complete');
-                    }, 1500);
+                    }, 2500);
                 }
                 return;
             }
