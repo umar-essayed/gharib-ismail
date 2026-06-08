@@ -34,13 +34,39 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   try {
-    const { data: products } = await supabase
-      .from('products')
-      .select('id, name, created_at')
-      .eq('is_available', true);
+    const allProducts: any[] = [];
+    let page = 0;
+    const pageSize = 1000;
+    let keepFetching = true;
 
-    if (products) {
-      const productRoutes = products.map((prod) => ({
+    while (keepFetching) {
+      const from = page * pageSize;
+      const to = from + pageSize - 1;
+      const { data: batch, error } = await supabase
+        .from('products')
+        .select('id, name, created_at')
+        .eq('is_available', true)
+        .range(from, to);
+
+      if (error) {
+        console.error('Error fetching sitemap products batch:', error);
+        break;
+      }
+
+      if (batch && batch.length > 0) {
+        allProducts.push(...batch);
+        if (batch.length < pageSize) {
+          keepFetching = false;
+        } else {
+          page++;
+        }
+      } else {
+        keepFetching = false;
+      }
+    }
+
+    if (allProducts.length > 0) {
+      const productRoutes = allProducts.map((prod) => ({
         url: `${baseUrl}/products/${slugify(prod.name)}`,
         lastModified: prod.created_at ? new Date(prod.created_at) : new Date(),
         changeFrequency: 'weekly' as const,
