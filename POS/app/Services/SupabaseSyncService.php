@@ -171,7 +171,7 @@ class SupabaseSyncService
                 'pos_product_id'    => (int)  $product['id'],
                 'category_id'       => $catSid,
                 'name'              => $product['name'],
-                'description'       => $product['description'] ?? '',
+                'description'       => $product['name'],
                 'price'             => (float) $product['sale_price'],
                 'sale_price'        => !empty($product['sale_price']) ? (float) $product['sale_price'] : null,
                 'wholesale_price'   => !empty($product['wholesale_price'])
@@ -387,7 +387,7 @@ class SupabaseSyncService
                     'pos_product_id'    => $prodId,
                     'category_id'       => $catSid,
                     'name'              => $prod['name'],
-                    'description'       => $prod['description'] ?? '',
+                    'description'       => $prod['name'],
                     'price'             => (float) $prod['sale_price'],
                     'sale_price'        => !empty($prod['sale_price']) ? (float) $prod['sale_price'] : null,
                     'wholesale_price'   => !empty($prod['wholesale_price'])
