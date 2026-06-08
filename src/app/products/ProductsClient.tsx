@@ -70,8 +70,8 @@ function ProductsContent() {
         query = query.or(`name.ilike.%${searchString}%,description.ilike.%${searchString}%`);
       }
 
-      // Order by id desc (newest first)
-      query = query.order('id', { ascending: false });
+      // Order by importance_score desc (most popular first)
+      query = query.order('importance_score', { ascending: false });
 
       const from = pageNum * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
@@ -116,7 +116,7 @@ function ProductsContent() {
         const { data: dbCats } = await supabase
           .from('categories')
           .select('*')
-          .order('name', { ascending: true });
+          .order('importance_score', { ascending: false });
           
         if (dbCats && dbCats.length > 0) {
           setCategories(dbCats as Category[]);

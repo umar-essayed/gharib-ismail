@@ -264,6 +264,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
             .select('*')
             .eq('category_id', currentProd.category_id)
             .neq('id', currentProd.id)
+            .order('importance_score', { ascending: false })
             .limit(4);
 
           if (dbRelated && dbRelated.length > 0) {

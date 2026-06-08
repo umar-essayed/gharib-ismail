@@ -2,133 +2,146 @@
 
 <style>
 /* ═══════════════════════════════════════════════════════════════
-   تنسيق ملصقات الباركود للطباعة
+   تنسيق ملصقات الباركود المتوافق تماماً مع Xprinter XP-323B
 ══════════════════════════════════════════════════════════════════ */
-body.print-page {
+html, body {
     background: #fff;
     padding: 0;
     margin: 0;
+    font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+    direction: rtl;
 }
 
+/* التنسيق أثناء العرض على الشاشة */
 .labels-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(6cm, 1fr));
-    gap: 12px;
-    padding: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(55mm, 1fr));
+    gap: 15px;
+    padding: 15px;
+    background: #f4f4f4;
 }
 
 .label-card {
-    border: 1px dashed #bbb;
-    border-radius: 6px;
-    padding: 12px 8px;
-    text-align: center;
     background: #fff;
-    min-height: 120px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-between;
+    border: 1px dashed #999;
+    border-radius: 4px;
+    width: 50mm;
+    height: 30mm;
+    padding: 1.5mm 2mm;
     box-sizing: border-box;
-    page-break-inside: avoid;
+    margin: 0 auto;
+    position: relative;
+    overflow: hidden;
+    text-align: center;
 }
 
 .product-name {
-    font-size: 12px;
-    font-weight: 700;
-    color: #333;
-    margin-bottom: 4px;
-    line-height: 1.3;
-    max-height: 2.6em;
+    font-size: 10.5pt;
+    font-weight: bold;
+    color: #000;
+    line-height: 1.2;
+    height: 2.4em; /* أقصى حد سطرين لاسم المنتج */
     overflow: hidden;
-    width: 100%;
+    margin-bottom: 1mm;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
 }
 
 .barcode-container {
     width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin: 4px 0;
+    height: 11mm; /* مساحة ثابتة ومحددة للباركود */
+    margin: 0 auto;
+    text-align: center;
 }
 
 .barcode-svg {
-    max-width: 100%;
-    height: auto;
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+    margin: 0 auto;
 }
 
 .fallback-barcode {
     font-family: monospace;
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    border: 1px solid #333;
-    padding: 4px 8px;
-    margin: 6px 0;
-    background: #f8fafc;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    border: 1px dashed #000;
+    padding: 2px;
+    background: #fff;
 }
 
 .product-price {
-    font-size: 13px;
-    font-weight: 800;
+    font-size: 11pt;
+    font-weight: 900;
     color: #000;
-    border-top: 1px solid #eee;
-    width: 100%;
-    padding-top: 4px;
-    margin-top: 4px;
+    border-top: 1px dashed #000;
+    padding-top: 1mm;
+    margin-top: 1mm;
+    position: absolute;
+    bottom: 1.5mm;
+    left: 2mm;
+    right: 2mm;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   التنسيق الصارم والخاص بالطباعة الحرارية الفعلية (50mm x 30mm)
+══════════════════════════════════════════════════════════════════ */
 @media print {
     @page {
         size: 50mm 30mm;
-        margin: 0;
+        margin: 0 !important;
     }
+    
     html, body {
         margin: 0 !important;
         padding: 0 !important;
         background: #fff !important;
         -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
     }
+
     .labels-grid {
         display: block !important;
         padding: 0 !important;
         margin: 0 !important;
-        gap: 0 !important;
+        background: #fff !important;
     }
+
     .label-card {
         width: 50mm !important;
         height: 30mm !important;
-        border: none !important;
+        border: none !important; /* إزالة الحدود تماماً لكي لا تظهر على الملصق المطبوع */
         margin: 0 !important;
         padding: 1.5mm 2mm !important;
-        page-break-after: always !important;
+        page-break-after: always !important; /* إجبار الطابعة على الانتقال للملصق التالي بدقة */
         page-break-inside: avoid !important;
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: space-between !important;
-        align-items: center !important;
+        position: relative !important;
         box-sizing: border-box !important;
+        display: block !important; /* تحويله لكتلة ثابتة بدلاً من flex */
     }
+
     .product-name {
-        font-size: 10px !important;
+        font-size: 10pt !important;
         font-weight: bold !important;
-        margin-bottom: 1px !important;
-        line-height: 1.1 !important;
-        white-space: nowrap !important;
-        text-overflow: ellipsis !important;
+        margin-bottom: 1mm !important;
+        height: 2.4em !important;
         overflow: hidden !important;
     }
+
     .barcode-container {
-        margin: 1px 0 !important;
+        height: 11mm !important;
+        margin: 0 auto !important;
     }
-    .barcode-svg {
-        height: 30px !important;
-    }
+
     .product-price {
-        font-size: 10px !important;
+        font-size: 11pt !important;
         font-weight: bold !important;
-        border-top: 1px solid #000 !important;
-        padding-top: 1px !important;
-        margin-top: 1px !important;
+        border-top: 1px dashed #000 !important;
+        padding-top: 1mm !important;
+        position: absolute !important;
+        bottom: 1.5mm !important;
     }
 }
 </style>
@@ -146,7 +159,7 @@ body.print-page {
                     <?php if (!empty($barcodeVal)): ?>
                         <svg class="barcode-svg" data-value="<?= e($barcodeVal) ?>"></svg>
                     <?php else: ?>
-                        <div class="text-danger small">بدون باركود</div>
+                        <div style="font-size: 11px; color: red; font-weight: bold; padding-top: 5px;">بدون باركود</div>
                     <?php endif; ?>
                 </div>
                 <div class="product-price">السعر: <?= money($row['sale_price']) ?></div>
@@ -155,12 +168,10 @@ body.print-page {
     <?php endforeach; ?>
 </div>
 
-<!-- مكتبة JsBarcode لإنشاء الباركود حقيقي وقابل للمسح -->
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
 <script>
 window.addEventListener('DOMContentLoaded', () => {
     if (typeof JsBarcode === 'undefined') {
-        console.warn('تعذر تحميل مكتبة JsBarcode من السيرفر السحابي - سيتم عرض الباركود كنص.');
         document.querySelectorAll('.barcode-svg').forEach(svg => {
             const val = svg.getAttribute('data-value');
             const fallback = document.createElement('div');
@@ -177,10 +188,10 @@ window.addEventListener('DOMContentLoaded', () => {
             try {
                 JsBarcode(svg, val, {
                     format: "CODE128",
-                    width: 1.2,
-                    height: 32,
+                    width: 1.4,       /* تم زيادة العرض قليلاً لتسهيل القراءة بالماسح */
+                    height: 28,       /* ارتفاع متناسق وممتاز جداً مع مقاس الـ 30 مم للملصق */
                     displayValue: true,
-                    fontSize: 8,
+                    fontSize: 9,      /* حجم خط رقم الباركود أسفل الخطوط ليكون واضحاً */
                     textMargin: 1,
                     fontOptions: "bold",
                     margin: 0

@@ -3,9 +3,11 @@
 -- تشغيل هذا الكود في Supabase SQL Editor
 -- ============================================================
 
--- 1. إضافة حقل pos_category_id لربط الأقسام بالكاشير
+-- 1. إضافة حقل pos_category_id لربط الأقسام بالكاشير وحقول الوصف والنشاط
 ALTER TABLE public.categories
-  ADD COLUMN IF NOT EXISTS pos_category_id INTEGER UNIQUE;
+  ADD COLUMN IF NOT EXISTS pos_category_id INTEGER UNIQUE,
+  ADD COLUMN IF NOT EXISTS description TEXT,
+  ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
 
 -- 2. إضافة حقل pos_product_id لربط المنتجات بالكاشير
 ALTER TABLE public.products
@@ -24,6 +26,16 @@ CREATE INDEX IF NOT EXISTS idx_orders_pos_sync ON public.orders (pos_sync_status
 CREATE INDEX IF NOT EXISTS idx_orders_status ON public.orders (status);
 CREATE INDEX IF NOT EXISTS idx_products_pos_id ON public.products (pos_product_id);
 CREATE INDEX IF NOT EXISTS idx_categories_pos_id ON public.categories (pos_category_id);
+
+-- 4.1. إضافة حقول importance_score لترتيب عرض المنتجات بالذكاء الاصطناعي
+ALTER TABLE public.categories
+  ADD COLUMN IF NOT EXISTS importance_score NUMERIC(5, 2) DEFAULT 0.0;
+
+ALTER TABLE public.products
+  ADD COLUMN IF NOT EXISTS importance_score NUMERIC(5, 2) DEFAULT 0.0;
+
+CREATE INDEX IF NOT EXISTS idx_products_importance ON public.products (importance_score DESC);
+CREATE INDEX IF NOT EXISTS idx_categories_importance ON public.categories (importance_score DESC);
 
 -- 5. تحديث سياسة RLS للسماح لخادم الكاشير بالقراءة والكتابة
 -- (Service Role Key يتخطى RLS تلقائياً — لا حاجة لسياسة إضافية)

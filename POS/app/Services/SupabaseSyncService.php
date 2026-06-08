@@ -47,8 +47,8 @@ class SupabaseSyncService
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_CUSTOMREQUEST  => $method,
             CURLOPT_HTTPHEADER     => $headers,
-            CURLOPT_CONNECTTIMEOUT => 3,   // فشل الاتصال بعد 3 ثوانٍ
-            CURLOPT_TIMEOUT        => 5,   // فشل الطلب كاملاً بعد 5 ثوانٍ
+            CURLOPT_CONNECTTIMEOUT => 15,  // فشل الاتصال بعد 15 ثانية
+            CURLOPT_TIMEOUT        => 60,  // فشل الطلب كاملاً بعد 60 ثانية
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_SSL_VERIFYHOST => false,
         ]);
@@ -292,8 +292,10 @@ class SupabaseSyncService
                 $catPayloads[] = [
                     'pos_category_id' => (int) $cat['id'],
                     'name'            => $cat['name'],
+                    'slug'            => self::slugify($cat['name']),
                     'description'     => $cat['description'] ?? '',
                     'is_active'       => (int) $cat['is_active'] === 1,
+                    'importance_score' => (float) ($cat['importance_score'] ?? 0.0),
                 ];
             }
 
@@ -388,11 +390,12 @@ class SupabaseSyncService
                     'stock'             => $safeStock,
                     'is_available'      => (int) $prod['is_active'] === 1,
                     'image_url'         => $imageUrl,
+                    'importance_score'  => (float) ($prod['importance_score'] ?? 0.0),
                 ];
             }
 
-            // تقسيم المنتجات إلى حزم (Chunks) بحجم 500 منتج لكل حزمة لتفادي حجم طلبات HTTP الكبير
-            $chunks = array_chunk($prodPayloads, 500);
+            // تقسيم المنتجات إلى حزم (Chunks) بحجم 200 منتج لكل حزمة لتفادي حجم طلبات HTTP الكبير والمهلات الزمنية
+            $chunks = array_chunk($prodPayloads, 200);
             foreach ($chunks as $chunk) {
                 try {
                     // إرسال طلب UPSERT مجمع للمنتجات

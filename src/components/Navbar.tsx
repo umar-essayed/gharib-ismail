@@ -73,7 +73,7 @@ export default function Navbar() {
         const { data, error } = await supabase
           .from('categories')
           .select('*')
-          .order('name', { ascending: true });
+          .order('importance_score', { ascending: false });
         if (data && data.length > 0) {
           setCategories(data);
         } else {

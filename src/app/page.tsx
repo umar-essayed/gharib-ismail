@@ -66,12 +66,13 @@ function HomeContent() {
         const { data: dbCats } = await supabase
           .from('categories')
           .select('*')
-          .order('name', { ascending: true });
+          .order('importance_score', { ascending: false });
           
         const { data: dbProds } = await supabase
           .from('products')
           .select('*')
-          .eq('is_available', true);
+          .eq('is_available', true)
+          .order('importance_score', { ascending: false });
 
         const { data: dbBanners } = await supabase
           .from('banners')
