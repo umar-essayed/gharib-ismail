@@ -90,17 +90,13 @@ html, body {
 ══════════════════════════════════════════════════════════════════ */
 @media print {
     @page {
-        size: 50mm 30mm; /* الأبعاد الصحيحة: عرض 50mm × ارتفاع 30mm تطابق إعداد Electron */
+        size: 50mm 30mm;
         margin: 0 !important;
     }
     
     html, body {
-        margin: 0 !important;
-        padding: 0 !important;
-        background: #fff !important;
         width: 50mm !important;
         height: 30mm !important;
-        overflow: hidden !important;
     }
 
     .labels-grid {
@@ -112,7 +108,6 @@ html, body {
 
     .label-card {
         border: none !important;
-        margin: 0 !important;
         page-break-after: always !important;
         page-break-inside: avoid !important;
         position: relative !important;
@@ -120,18 +115,19 @@ html, body {
         display: block !important;
         overflow: hidden !important;
 
-        /* أبعاد الكارت تطابق أبعاد الصفحة المرسلة من Electron */
-        width: 50mm !important;
-        height: 30mm !important;
-        padding: 1.5mm 2mm !important;
+        /* تصغير الكارت بأمان داخل حدود الورقة 50×30mm */
+        width: 48mm !important;
+        height: 28mm !important;
+        margin: 1mm auto !important;
+        padding: 1mm 1.5mm !important;
     }
 
     .product-name {
-        font-size: 10.5pt !important;
+        font-size: 8.5pt !important;
         font-weight: bold !important;
         line-height: 1.2 !important;
-        margin-bottom: 1mm !important;
-        height: 2.4em !important;
+        margin-bottom: 0.5mm !important;
+        height: 2.2em !important;
         overflow: hidden !important;
         display: -webkit-box !important;
         -webkit-line-clamp: 2 !important;
@@ -140,19 +136,22 @@ html, body {
     }
 
     .barcode-container {
-        height: 11mm !important;
+        height: 12mm !important;
         width: 100% !important;
-        margin: 0 auto !important;
+        /* تصغير طفيف للباركود ليتناسب مع العرض المتاح */
+        transform: scale(0.9);
+        transform-origin: top center;
+        margin-top: 1mm !important;
         overflow: hidden !important;
     }
 
     .product-price {
-        font-size: 10pt !important;
+        font-size: 9pt !important;
         font-weight: bold !important;
         border-top: 1px dashed #000 !important;
-        padding-top: 1mm !important;
+        padding-top: 0.5mm !important;
         position: absolute !important;
-        bottom: 1.5mm !important;
+        bottom: 2mm !important; /* رفع السعر لتجنب القص بواسطة الطابعة */
         left: 2mm !important;
         right: 2mm !important;
     }

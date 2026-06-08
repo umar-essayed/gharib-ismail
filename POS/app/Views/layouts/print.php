@@ -17,22 +17,25 @@
         .print-container {
             width: 100%;
             max-width: 100%;
-            padding: 0; /* تم تصفير الهوامش الافتراضية لضمان سلامة الملصقات الحرارية */
             margin: 0;
             box-sizing: border-box;
         }
 
-        /* إذا كنت تريد مسافة جمالية للفواتير الكبيرة على الشاشة فقط دون التأثير على الملصقات */
         @media screen {
-            .print-container {
-                padding: 12px;
-            }
+            .print-container { padding: 12px; }
         }
 
+        /* Dynamic Print Rules */
         @media print {
-            .print-container {
+            /* Default (for Barcode) - Strict Zero Margins */
+            body.is-barcode .print-container {
                 padding: 0 !important;
                 margin: 0 !important;
+            }
+            /* Specific Fix for Normal Receipts - shift left to prevent edge cutoff */
+            body.is-receipt .print-container {
+                margin: 0 !important;
+                padding: 0 22px 0 0 !important;
             }
         }
     </style>
@@ -53,41 +56,33 @@
     const shouldPrint = autoPrint === null || autoPrint === '1';
     let completed = false;
 
-    const notifyParent = (type, message = '') => {
-        if (!embedded || window.parent === window) {
-            return;
-        }
+    // Dynamically add class based on print type
+    const isLabel = window.location.pathname.includes('/barcode/print');
+    document.body.classList.add(isLabel ? 'is-barcode' : 'is-receipt');
 
+    const notifyParent = (type, message = '') => {
+        if (!embedded || window.parent === window) return;
         try {
             window.parent.postMessage({ type, invoiceNo, message, jobId }, window.location.origin);
         } catch (e) {}
     };
 
     const finish = (type = 'pos-print-complete', message = '') => {
-        if (completed) {
-            return;
-        }
+        if (completed) return;
         completed = true;
 
         if (embedded) {
             notifyParent(type, message);
-            setTimeout(() => {
-                window.location.replace('about:blank');
-            }, 20);
+            setTimeout(() => { window.location.replace('about:blank'); }, 20);
             return;
         }
 
         if (selfClose) {
-            try {
-                window.open('', '_self');
-                window.close();
-            } catch (e) {}
+            try { window.open('', '_self'); window.close(); } catch (e) {}
             return;
         }
 
-        if (returnTo) {
-            window.location.replace(returnTo);
-        }
+        if (returnTo) { window.location.replace(returnTo); }
     };
 
     window.addEventListener('load', () => {
@@ -95,15 +90,11 @@
             setTimeout(() => {
                 try {
                     if (window.electronAPI) {
-                        let printerName = '';
-                        let isLabel = false;
-                        // فحص ذكي: إذا كان الرابط يحتوي على باركود، يتم سحب اسم طابعة الباركود المخصصة
-                        if (window.location.pathname.includes('/barcode/print')) {
-                            isLabel = true;
-                            printerName = <?= json_encode(\App\Services\SettingsService::get('label_printer', '')) ?> || <?= json_encode(\App\Services\SettingsService::get('default_printer', '')) ?>;
-                        } else {
-                            printerName = <?= json_encode(\App\Services\SettingsService::get('default_printer', '')) ?>;
-                        }
+                        let printerName = isLabel
+                            ? (<?= json_encode(\App\Services\SettingsService::get('label_printer', '')) ?> || <?= json_encode(\App\Services\SettingsService::get('default_printer', '')) ?>)
+                            : <?= json_encode(\App\Services\SettingsService::get('default_printer', '')) ?>;
+
+                        // Pass isLabel as second parameter so Electron uses the correct page size
                         window.electronAPI.printSilent(printerName, isLabel);
                     } else {
                         window.print();
@@ -123,40 +114,20 @@
                         }
                     });
                 } else {
-                    setTimeout(() => {
-                        finish('pos-print-complete');
-                    }, 1500);
+                    setTimeout(() => { finish('pos-print-complete'); }, 1500);
                 }
                 return;
             }
 
-            if (embedded) {
-                setTimeout(() => {
-                    finish('pos-print-complete');
-                }, 2500);
-                return;
-            }
-
-            if (returnTo) {
-                setTimeout(() => {
-                    finish('pos-print-complete');
-                }, 900);
-                return;
-            }
-
-            if (selfClose) {
-                setTimeout(() => {
-                    finish('pos-print-complete');
-                }, 900);
-            }
+            if (embedded) { setTimeout(() => { finish('pos-print-complete'); }, 2500); return; }
+            if (returnTo) { setTimeout(() => { finish('pos-print-complete'); }, 900); return; }
+            if (selfClose) { setTimeout(() => { finish('pos-print-complete'); }, 900); }
             return;
         }
         finish('pos-print-complete');
     });
 
-    window.addEventListener('afterprint', () => {
-        finish('pos-print-complete');
-    });
+    window.addEventListener('afterprint', () => { finish('pos-print-complete'); });
 })();
 </script>
 </body>
