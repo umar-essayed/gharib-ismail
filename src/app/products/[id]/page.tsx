@@ -89,7 +89,66 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default function ProductDetailPage({ params }: Props) {
-  const { id } = use(params);
-  return <ProductDetailClient id={id} />;
+export default async function ProductDetailPage({ params }: Props) {
+  const { id } = await params;
+  const decodedId = decodeURIComponent(id);
+
+  let dbProd: any = null;
+  try {
+    if (isUuid(decodedId)) {
+      const { data } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', decodedId)
+        .single();
+      dbProd = data;
+    } else {
+      const pattern = decodedId.split('-').join('%');
+      const { data } = await supabase
+        .from('products')
+        .select('*')
+        .ilike('name', pattern)
+        .limit(1);
+      if (data && data.length > 0) {
+        dbProd = data[0];
+      }
+    }
+  } catch (e) {
+    // Ignore
+  }
+
+  const prod = dbProd || mockProducts.find(p => p.id === decodedId || slugify(p.name) === decodedId);
+
+  let schemaJson = null;
+  if (prod) {
+    const cleanImage = prod.image_url ? prod.image_url.split(',')[0].trim() : 'https://www.nassryaa-gomla.markets/logo.jpeg';
+    const activePrice = Number(prod.sale_price || prod.price);
+    schemaJson = {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      "name": prod.name,
+      "image": cleanImage,
+      "description": prod.description || prod.name,
+      "offers": {
+        "@type": "Offer",
+        "url": `https://www.nassryaa-gomla.markets/products/${decodedId}`,
+        "priceCurrency": "EGP",
+        "price": activePrice,
+        "availability": prod.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+        "priceValidUntil": "2030-12-31"
+      }
+    };
+  }
+
+  return (
+    <>
+      {schemaJson && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaJson) }}
+        />
+      )}
+      <ProductDetailClient id={id} />
+    </>
+  );
 }
