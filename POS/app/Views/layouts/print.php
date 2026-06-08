@@ -96,13 +96,15 @@
                 try {
                     if (window.electronAPI) {
                         let printerName = '';
+                        let isLabel = false;
                         // فحص ذكي: إذا كان الرابط يحتوي على باركود، يتم سحب اسم طابعة الباركود المخصصة
                         if (window.location.pathname.includes('/barcode/print')) {
+                            isLabel = true;
                             printerName = <?= json_encode(\App\Services\SettingsService::get('label_printer', '')) ?> || <?= json_encode(\App\Services\SettingsService::get('default_printer', '')) ?>;
                         } else {
                             printerName = <?= json_encode(\App\Services\SettingsService::get('default_printer', '')) ?>;
                         }
-                        window.electronAPI.printSilent(printerName);
+                        window.electronAPI.printSilent(printerName, isLabel);
                     } else {
                         window.print();
                     }

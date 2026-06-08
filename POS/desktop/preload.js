@@ -1,7 +1,7 @@
 const { contextBridge, ipcRenderer, webFrame } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
-    printSilent: (printerName) => ipcRenderer.send('print-silent', printerName),
+    printSilent: (printerName, isLabel = false) => ipcRenderer.send('print-silent', printerName, isLabel),
     quitApp: () => ipcRenderer.send('quit-app'),
     getPrinters: () => ipcRenderer.invoke('get-printers'),
     checkTunnelStatus: () => ipcRenderer.invoke('check-tunnel-status'),

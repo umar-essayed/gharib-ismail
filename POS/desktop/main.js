@@ -721,17 +721,18 @@ app.on('quit', () => {
 });
 
 // IPC Handler to trigger native silent printing
-ipcMain.on('print-silent', (event, printerName) => {
+ipcMain.on('print-silent', (event, printerName, isLabel = false) => {
+    // Set page size dynamically: 50x30mm for barcode labels, 80x300mm for receipts
+    const labelPageSize  = { width: 50000,  height: 30000  }; // 50mm × 30mm in microns
+    const receiptPageSize = { width: 80000,  height: 300000 }; // 80mm × 300mm in microns
+
     const printOptions = {
         silent: true,
         printBackground: true,
         margins: {
             marginType: 'none' // إلغاء الهوامش تماماً لمنع تصغير الفاتورة لحجم النصف مللي
         },
-        pageSize: {
-            width: 80000,   // 80mm محسوبة بالـ Microns ليفهمها محرك الكروميوم
-            height: 300000  // ارتفاع افتراضي طويل (300mm) لكي تسحب الطابعة براحتها دون انقطاع الفاتورة
-        }
+        pageSize: isLabel ? labelPageSize : receiptPageSize
     };
     if (printerName) {
         printOptions.deviceName = printerName;

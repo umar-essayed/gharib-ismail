@@ -2,7 +2,7 @@
 
 <style>
 /* ═══════════════════════════════════════════════════════════════
-   تنسيق ملصقات الباركود المتوافق تماماً مع Xprinter XP-323B
+   تنسيق ملصقات الباركود النهائي والمعدل هندسياً لمنع القص والترحيل
 ══════════════════════════════════════════════════════════════════ */
 html, body {
     background: #fff;
@@ -12,7 +12,7 @@ html, body {
     direction: rtl;
 }
 
-/* التنسيق أثناء العرض على الشاشة */
+/* التنسيق أثناء العرض على الشاشة للمعاينة */
 .labels-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(55mm, 1fr));
@@ -40,7 +40,7 @@ html, body {
     font-weight: bold;
     color: #000;
     line-height: 1.2;
-    height: 2.4em; /* أقصى حد سطرين لاسم المنتج */
+    height: 2.4em;
     overflow: hidden;
     margin-bottom: 1mm;
     display: -webkit-box;
@@ -50,7 +50,7 @@ html, body {
 
 .barcode-container {
     width: 100%;
-    height: 11mm; /* مساحة ثابتة ومحددة للباركود */
+    height: 11mm;
     margin: 0 auto;
     text-align: center;
 }
@@ -86,11 +86,11 @@ html, body {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   التنسيق الصارم والخاص بالطباعة الحرارية الفعلية (50mm x 30mm)
+   التنسيق الصارم لمعالجة تضارب المحاور وقت الطباعة الفعلية
 ══════════════════════════════════════════════════════════════════ */
 @media print {
     @page {
-        size: 50mm 30mm;
+        size: 50mm 30mm; /* الأبعاد الصحيحة: عرض 50mm × ارتفاع 30mm تطابق إعداد Electron */
         margin: 0 !important;
     }
     
@@ -98,8 +98,9 @@ html, body {
         margin: 0 !important;
         padding: 0 !important;
         background: #fff !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
+        width: 50mm !important;
+        height: 30mm !important;
+        overflow: hidden !important;
     }
 
     .labels-grid {
@@ -110,38 +111,50 @@ html, body {
     }
 
     .label-card {
-        width: 50mm !important;
-        height: 30mm !important;
-        border: none !important; /* إزالة الحدود تماماً لكي لا تظهر على الملصق المطبوع */
+        border: none !important;
         margin: 0 !important;
-        padding: 1.5mm 2mm !important;
-        page-break-after: always !important; /* إجبار الطابعة على الانتقال للملصق التالي بدقة */
+        page-break-after: always !important;
         page-break-inside: avoid !important;
         position: relative !important;
         box-sizing: border-box !important;
-        display: block !important; /* تحويله لكتلة ثابتة بدلاً من flex */
+        display: block !important;
+        overflow: hidden !important;
+
+        /* أبعاد الكارت تطابق أبعاد الصفحة المرسلة من Electron */
+        width: 50mm !important;
+        height: 30mm !important;
+        padding: 1.5mm 2mm !important;
     }
 
     .product-name {
-        font-size: 10pt !important;
+        font-size: 10.5pt !important;
         font-weight: bold !important;
+        line-height: 1.2 !important;
         margin-bottom: 1mm !important;
         height: 2.4em !important;
         overflow: hidden !important;
+        display: -webkit-box !important;
+        -webkit-line-clamp: 2 !important;
+        -webkit-box-orient: vertical !important;
+        white-space: normal !important;
     }
 
     .barcode-container {
         height: 11mm !important;
+        width: 100% !important;
         margin: 0 auto !important;
+        overflow: hidden !important;
     }
 
     .product-price {
-        font-size: 11pt !important;
+        font-size: 10pt !important;
         font-weight: bold !important;
         border-top: 1px dashed #000 !important;
         padding-top: 1mm !important;
         position: absolute !important;
         bottom: 1.5mm !important;
+        left: 2mm !important;
+        right: 2mm !important;
     }
 }
 </style>
@@ -159,7 +172,7 @@ html, body {
                     <?php if (!empty($barcodeVal)): ?>
                         <svg class="barcode-svg" data-value="<?= e($barcodeVal) ?>"></svg>
                     <?php else: ?>
-                        <div style="font-size: 11px; color: red; font-weight: bold; padding-top: 5px;">بدون باركود</div>
+                        <div style="font-size: 10px; color: red; font-weight: bold; padding-top: 2px;">بدون باركود</div>
                     <?php endif; ?>
                 </div>
                 <div class="product-price">السعر: <?= money($row['sale_price']) ?></div>
@@ -188,10 +201,10 @@ window.addEventListener('DOMContentLoaded', () => {
             try {
                 JsBarcode(svg, val, {
                     format: "CODE128",
-                    width: 1.4,       /* تم زيادة العرض قليلاً لتسهيل القراءة بالماسح */
-                    height: 28,       /* ارتفاع متناسق وممتاز جداً مع مقاس الـ 30 مم للملصق */
+                    width: 1.5,       /* سمك مناسب لضمان قراءة الباركود بالماسح */
+                    height: 35,       /* ارتفاع كافٍ لضمان دقة القراءة */
                     displayValue: true,
-                    fontSize: 9,      /* حجم خط رقم الباركود أسفل الخطوط ليكون واضحاً */
+                    fontSize: 10,
                     textMargin: 1,
                     fontOptions: "bold",
                     margin: 0
