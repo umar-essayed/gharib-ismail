@@ -96,33 +96,43 @@
 
                         // Pass isLabel as second parameter so Electron uses the correct page size
                         window.electronAPI.printSilent(printerName, isLabel);
+
+                        // In Electron: onPrintFinished handles everything.
+                        // Register the callback here (inside the setTimeout) so it fires
+                        // after the print job is confirmed finished by the print engine.
+                        if (typeof window.electronAPI.onPrintFinished === 'function') {
+                            window.electronAPI.onPrintFinished((data) => {
+                                if (!completed) {
+                                    if (data.success) {
+                                        finish('pos-print-complete');
+                                    } else {
+                                        finish('pos-print-error', 'فشلت الطباعة: ' + data.error);
+                                    }
+                                    // Close this popup window after Electron finishes printing
+                                    if (selfClose || embedded) {
+                                        try { window.open('', '_self'); window.close(); } catch (e) {}
+                                    }
+                                }
+                            });
+                        } else {
+                            // No callback available — assume success after a safe delay
+                            setTimeout(() => { finish('pos-print-complete'); }, 2000);
+                        }
+
                     } else {
+                        // Non-Electron browser fallback
                         window.print();
+
+                        if (embedded) { setTimeout(() => { finish('pos-print-complete'); }, 2500); return; }
+                        if (returnTo)  { setTimeout(() => { finish('pos-print-complete'); }, 900);  return; }
+                        if (selfClose) { setTimeout(() => { finish('pos-print-complete'); }, 900);  }
                     }
                 } catch (e) {
                     finish('pos-print-error', 'تعذر بدء الطباعة');
                 }
             }, 400);
 
-            if (window.electronAPI) {
-                if (typeof window.electronAPI.onPrintFinished === 'function') {
-                    window.electronAPI.onPrintFinished((data) => {
-                        if (data.success) {
-                            finish('pos-print-complete');
-                        } else {
-                            finish('pos-print-error', 'فشلت الطباعة: ' + data.error);
-                        }
-                    });
-                } else {
-                    setTimeout(() => { finish('pos-print-complete'); }, 1500);
-                }
-                return;
-            }
-
-            if (embedded) { setTimeout(() => { finish('pos-print-complete'); }, 2500); return; }
-            if (returnTo) { setTimeout(() => { finish('pos-print-complete'); }, 900); return; }
-            if (selfClose) { setTimeout(() => { finish('pos-print-complete'); }, 900); }
-            return;
+            return; // All paths handled above
         }
         finish('pos-print-complete');
     });
