@@ -136,14 +136,7 @@ function support_tech_line(): string
 
 function support_qr_payload(): string
 {
-    $value = trim((string) (config('app')['glory_support_qr_payload'] ?? ''));
-    if ($value !== '' && !str_contains($value, 'احمد ابو المجد')) {
-        return $value;
-    }
-    $settings = \App\Services\SettingsService::all();
-    $name = $settings['company_name'] ?? 'POSG';
-    $phone = $settings['company_phone'] ?? '';
-    return trim($name . ' ' . $phone);
+    return 'https://nassryaa-gomla.markets';
 }
 
 function support_qr_image_url(int $size = 82): string

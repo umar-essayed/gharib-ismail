@@ -49,8 +49,7 @@ if ($isRetailInvoice) {
 
     .receipt {
         width: 72mm !important;
-        margin-left: 4mm !important;
-        margin-right: auto !important;
+        margin: 0 auto !important;
         padding: 1.2mm 0;
         box-sizing: border-box;
         color: #000;
@@ -255,8 +254,7 @@ if ($isRetailInvoice) {
         }
         .receipt {
             width: 72mm !important;
-            margin-left: 4mm !important;
-            margin-right: auto !important;
+            margin: 0 auto !important;
         }
         .receipt, .receipt * {
             color: #000 !important;
