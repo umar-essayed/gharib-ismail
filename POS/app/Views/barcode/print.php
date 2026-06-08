@@ -93,10 +93,11 @@ html, body {
         size: 50mm 30mm;
         margin: 0 !important;
     }
-    
+
     html, body {
         width: 50mm !important;
         height: 30mm !important;
+        overflow: hidden !important;
     }
 
     .labels-grid {
@@ -107,27 +108,25 @@ html, body {
     }
 
     .label-card {
-        border: none !important;
-        page-break-after: always !important;
-        page-break-inside: avoid !important;
+        width: 47mm !important;           /* أضيق قليلاً */
+        height: 29mm !important;          /* داخل حد 30mm */
+        margin-top: 0 !important;
+        margin-left: auto !important;
+        margin-right: 2.5mm !important;   /* إزاحة لليسار: ابعاد عن الحافة اليمنى */
+        margin-bottom: 0 !important;
+        padding: 1mm !important;
         position: relative !important;
         box-sizing: border-box !important;
-        display: block !important;
         overflow: hidden !important;
-
-        /* تصغير الكارت بأمان داخل حدود الورقة 50×30mm */
-        width: 48mm !important;
-        height: 28mm !important;
-        margin: 1mm auto !important;
-        padding: 1mm 1.5mm !important;
+        page-break-after: always !important;
+        page-break-inside: avoid !important;
     }
 
     .product-name {
         font-size: 8.5pt !important;
-        font-weight: bold !important;
-        line-height: 1.2 !important;
-        margin-bottom: 0.5mm !important;
-        height: 2.2em !important;
+        margin-bottom: 0 !important;
+        height: 2em !important;
+        text-align: center !important;
         overflow: hidden !important;
         display: -webkit-box !important;
         -webkit-line-clamp: 2 !important;
@@ -136,24 +135,24 @@ html, body {
     }
 
     .barcode-container {
-        height: 12mm !important;
-        width: 100% !important;
-        /* تصغير طفيف للباركود ليتناسب مع العرض المتاح */
-        transform: scale(0.9);
+        height: 10mm !important;
+        margin-top: 0 !important;
+        text-align: center !important;
+        transform: scale(0.85);           /* تصغير طفيف للحاوية */
         transform-origin: top center;
-        margin-top: 1mm !important;
-        overflow: hidden !important;
     }
 
     .product-price {
-        font-size: 9pt !important;
+        font-size: 8.5pt !important;
         font-weight: bold !important;
-        border-top: 1px dashed #000 !important;
-        padding-top: 0.5mm !important;
         position: absolute !important;
-        bottom: 2mm !important; /* رفع السعر لتجنب القص بواسطة الطابعة */
-        left: 2mm !important;
-        right: 2mm !important;
+        bottom: 1.5mm !important;         /* ثابت في الأسفل */
+        left: 0 !important;
+        right: 0 !important;
+        text-align: center !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border-top: 1px dashed #000 !important;
     }
 }
 </style>
@@ -200,10 +199,10 @@ window.addEventListener('DOMContentLoaded', () => {
             try {
                 JsBarcode(svg, val, {
                     format: "CODE128",
-                    width: 1.5,       /* سمك مناسب لضمان قراءة الباركود بالماسح */
-                    height: 35,       /* ارتفاع كافٍ لضمان دقة القراءة */
+                    width: 1.4,       /* أرفع قليلاً لضمان التناسب الأفقي */
+                    height: 24,       /* قصير جداً لترك مساحة كافية للسعر */
                     displayValue: true,
-                    fontSize: 10,
+                    fontSize: 9,
                     textMargin: 1,
                     fontOptions: "bold",
                     margin: 0
