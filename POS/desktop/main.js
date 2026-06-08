@@ -726,7 +726,7 @@ ipcMain.on('print-silent', (event, printerName) => {
         silent: true,
         printBackground: true,
         margins: {
-            marginType: 'none'
+            marginType: 'printableArea'
         }
     };
     if (printerName) {

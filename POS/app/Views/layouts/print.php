@@ -82,22 +82,23 @@
 
     window.addEventListener('load', () => {
         if (shouldPrint) {
-            try {
-                if (window.electronAPI) {
-                    let printerName = '';
-                    if (window.location.pathname.includes('/barcode/print')) {
-                        printerName = <?= json_encode(\App\Services\SettingsService::get('label_printer', '')) ?> || <?= json_encode(\App\Services\SettingsService::get('default_printer', '')) ?>;
+            setTimeout(() => {
+                try {
+                    if (window.electronAPI) {
+                        let printerName = '';
+                        if (window.location.pathname.includes('/barcode/print')) {
+                            printerName = <?= json_encode(\App\Services\SettingsService::get('label_printer', '')) ?> || <?= json_encode(\App\Services\SettingsService::get('default_printer', '')) ?>;
+                        } else {
+                            printerName = <?= json_encode(\App\Services\SettingsService::get('default_printer', '')) ?>;
+                        }
+                        window.electronAPI.printSilent(printerName);
                     } else {
-                        printerName = <?= json_encode(\App\Services\SettingsService::get('default_printer', '')) ?>;
+                        window.print();
                     }
-                    window.electronAPI.printSilent(printerName);
-                } else {
-                    window.print();
+                } catch (e) {
+                    finish('pos-print-error', 'تعذر بدء الطباعة');
                 }
-            } catch (e) {
-                finish('pos-print-error', 'تعذر بدء الطباعة');
-                return;
-            }
+            }, 400);
 
             if (window.electronAPI) {
                 if (typeof window.electronAPI.onPrintFinished === 'function') {
