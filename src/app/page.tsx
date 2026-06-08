@@ -698,11 +698,11 @@ function HomeContent() {
       </section>
 
       {/* 5. Google Maps Location Console (Split design: Left Map Mockup, Right store block) */}
-      <section id="contact" className="py-16 bg-white border-t border-b border-slate-150">
-        <ScrollReveal className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-12 gap-8 items-stretch">
+      <section id="contact" className="py-16 bg-slate-50/50 border-t border-b border-slate-200/60">
+        <ScrollReveal className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-12 gap-8 items-stretch">
           
           {/* Left: Google Map View Mockup */}
-          <div className="md:col-span-7 rounded-3xl overflow-hidden shadow-md border border-slate-200/60 h-64 sm:h-auto min-h-[300px] relative">
+          <div className="md:col-span-7 rounded-3xl overflow-hidden shadow-lg border border-slate-200/80 h-72 sm:h-auto min-h-[350px] relative transition-transform duration-500 hover:scale-[1.01]">
             <iframe 
               src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3290.891572559634!2d29.789759360246514!3d30.99744417289808!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x14f5937e2d3273b7%3A0xd61de46345c2106e!2z2KfZhNmG2KfYtdix2YrYqSDYrNmF2YTZhyDZhdin2LHZg9iq!5e1!3m2!1sar!2seg!4v1780615933544!5m2!1sar!2seg"
               className="w-full h-full border-0 absolute inset-0"
@@ -712,45 +712,62 @@ function HomeContent() {
             />
           </div>
 
-          {/* Right: Forest Green Shop Info Panel */}
-          <div className="md:col-span-5 bg-slate-900 p-6 sm:p-8 rounded-3xl shadow-lg border-r-4 border-primary text-white flex flex-col justify-between text-right space-y-6">
+          {/* Right: Modern Green & White Shop Info Panel */}
+          <div className="md:col-span-5 bg-white p-8 rounded-3xl shadow-xl border border-emerald-100 flex flex-col justify-between text-right space-y-6 relative overflow-hidden group">
+            {/* Top decorative gradient bar */}
+            <div className="absolute top-0 right-0 left-0 h-1.5 bg-gradient-to-l from-primary via-emerald-400 to-primary/40" />
+            
+            {/* Background decorative watermark */}
+            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-primary/5 rounded-full blur-2xl pointer-events-none" />
             
             {/* Storefront header info */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 justify-end">
-                <div className="w-12 h-12 rounded-xl overflow-hidden bg-white p-0.5 border border-slate-800">
-                  <img src="/logo.jpeg" alt="شعار الماركت" className="w-full h-full object-cover rounded-lg" />
-                </div>
+            <div className="space-y-5 relative z-10">
+              <div className="flex items-center gap-4 justify-end">
                 <div>
-                  <h3 className="font-black text-base sm:text-lg">الناصرية جملة ماركت</h3>
-                  <p className="text-[10px] text-slate-400 font-bold">مؤسسة الناصرية التجارية</p>
+                  <h3 className="font-black text-slate-900 text-base sm:text-xl leading-tight">الناصرية جملة ماركت</h3>
+                  <p className="text-[10px] sm:text-xs text-primary font-black mt-1 bg-primary/10 border border-primary/20 px-2.5 py-0.5 rounded-full inline-block">
+                    مؤسسة الناصرية التجارية
+                  </p>
+                </div>
+                <div className="w-14 h-14 rounded-2xl overflow-hidden bg-white p-1 border border-slate-100 shadow-md group-hover:rotate-3 transition-transform duration-300">
+                  <img src="/logo.jpeg" alt="شعار الماركت" className="w-full h-full object-cover rounded-xl" />
                 </div>
               </div>
-              <div className="w-full h-px bg-slate-800" />
+              
+              <div className="w-full h-px bg-slate-100" />
             </div>
 
             {/* Address & Tel coordinates */}
-            <div className="space-y-4 text-xs font-semibold text-slate-300">
-              <div className="flex items-start gap-2.5 justify-end">
-                <span>الإسكندرية، العامرية، الناصرية القديمة</span>
-                <MapPin size={16} className="text-primary flex-shrink-0" />
+            <div className="space-y-5 text-slate-600 text-xs sm:text-sm font-bold relative z-10">
+              <div className="flex items-start gap-3 justify-end leading-relaxed">
+                <span>الإسكندرية، العامرية، الناصرية القديمة (بجوار سنترال الناصرية)</span>
+                <div className="p-2.5 bg-primary/10 text-primary rounded-xl flex-shrink-0">
+                  <MapPin size={18} />
+                </div>
               </div>
               
-              <div className="flex items-center gap-2.5 justify-end">
-                <span dir="ltr">+20 1211879341</span>
-                <Phone size={16} className="text-primary flex-shrink-0" />
+              <div className="flex items-center gap-3 justify-end">
+                <span dir="ltr" className="text-slate-800 font-extrabold text-base">+20 121 187 9341</span>
+                <div className="p-2.5 bg-primary/10 text-primary rounded-xl flex-shrink-0">
+                  <Phone size={18} />
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 justify-end text-[11px] sm:text-xs text-slate-450 leading-normal">
+                <span>جاهزون لخدمتكم وتوصيل طلباتكم إلى العامرية والناصرية يومياً.</span>
+                <span className="p-1 bg-emerald-500/10 text-emerald-600 rounded-full flex-shrink-0">✓</span>
               </div>
             </div>
 
             {/* CTA coordinates map link */}
-            <div>
+            <div className="relative z-10">
               <a 
-                href="https://www.google.com/maps/search/?api=1&query=31.0210214,29.8143431&query_place_id=ChIJYVLKpmnD9RQRsODX063FS20"
+                href="https://www.google.com/maps/search/?api=1&query=30.9974441,29.7897593&query_place_id=ChIJYVLKpmnD9RQRsODX063FS20"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full bg-primary hover:bg-primary-dark text-white font-extrabold py-3 rounded-xl transition-all shadow-md text-center inline-block text-xs cursor-pointer"
+                className="w-full bg-primary hover:bg-primary-dark text-white font-extrabold py-3.5 rounded-2xl transition-all shadow-md hover:shadow-lg hover:shadow-primary/20 text-center inline-block text-xs cursor-pointer hover:-translate-y-0.5"
               >
-                🗺️ اتجاهات خرائط جوجل
+                🗺️ فتح الاتجاهات في خرائط جوجل
               </a>
             </div>
 

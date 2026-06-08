@@ -81,10 +81,18 @@ class SupabaseSyncService
             $db   = Database::pdo();
             $slug = self::slugify($name);
 
+            // Fetch image_url locally
+            $stmtImg = $db->prepare('SELECT image_url FROM product_categories WHERE id = :id');
+            $stmtImg->execute(['id' => $posId]);
+            $imageUrl = $stmtImg->fetchColumn() ?: null;
+
             $payload = [
                 'pos_category_id' => $posId,
                 'name'            => $name,
                 'slug'            => $slug,
+                'description'     => $description,
+                'is_active'       => $isActive === 1,
+                'image_url'       => $imageUrl,
             ];
 
             // هل عندنا UUID محفوظ مسبقاً؟
@@ -296,6 +304,7 @@ class SupabaseSyncService
                     'description'     => $cat['description'] ?? '',
                     'is_active'       => (int) $cat['is_active'] === 1,
                     'importance_score' => (float) ($cat['importance_score'] ?? 0.0),
+                    'image_url'       => $cat['image_url'] ?? null,
                 ];
             }
 
