@@ -14,6 +14,7 @@ export interface Category {
   slug: string;
   image_url: string;
   created_at: string;
+  importance_score?: number;
 }
 
 export interface Product {
@@ -29,6 +30,7 @@ export interface Product {
   image_url?: string;
   is_available: boolean;
   created_at?: string;
+  importance_score?: number;
 }
 
 export interface CartItem {

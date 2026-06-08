@@ -27,6 +27,7 @@ function HomeContent() {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [latestOrder, setLatestOrder] = useState<Order | null>(null);
+  const [userOrders, setUserOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [layoutMode, setLayoutMode] = useState<'grid' | 'list'>('grid');
   
@@ -41,9 +42,10 @@ function HomeContent() {
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
-  // Fetch the latest order status for logged-in users
+  // Fetch the latest order status and history for logged-in users
   useEffect(() => {
     if (profile) {
+      // Fetch latest order for active tracking status
       supabase
         .from('orders')
         .select('*')
@@ -54,8 +56,19 @@ function HomeContent() {
         .then(({ data }) => {
           if (data) setLatestOrder(data as Order);
         });
+
+      // Fetch all past orders to build the personalized recommendation feed
+      supabase
+        .from('orders')
+        .select('*')
+        .eq('user_id', profile.id)
+        .order('created_at', { ascending: false })
+        .then(({ data }) => {
+          if (data) setUserOrders(data as Order[]);
+        });
     } else {
       setLatestOrder(null);
+      setUserOrders([]);
     }
   }, [profile]);
 
@@ -149,6 +162,68 @@ function HomeContent() {
     }, 5000);
     return () => clearInterval(interval);
   }, [banners]);
+
+  // Personalized feed & recommendation engine
+  const recommendations = React.useMemo(() => {
+    if (!profile || products.length === 0) return { personalizedFeed: [], buyItAgain: [] };
+
+    // 1. Calculate frequency of each product purchased
+    const productPurchaseCount: Record<string, number> = {};
+    userOrders.forEach(order => {
+      const items = Array.isArray(order.items) ? order.items : [];
+      items.forEach((item: any) => {
+        if (item.product_id) {
+          productPurchaseCount[item.product_id] = (productPurchaseCount[item.product_id] || 0) + (item.qty || 1);
+        }
+      });
+    });
+
+    // 2. Calculate category affinity (total purchases per category)
+    const categoryPurchaseCount: Record<string, number> = {};
+    const productMap = new Map<string, Product>();
+    products.forEach(p => productMap.set(p.id, p));
+
+    Object.entries(productPurchaseCount).forEach(([productId, qty]) => {
+      const product = productMap.get(productId);
+      if (product && product.category_id) {
+        categoryPurchaseCount[product.category_id] = (categoryPurchaseCount[product.category_id] || 0) + qty;
+      }
+    });
+
+    // 3. Score every available product
+    const scoredProducts = products
+      .filter(p => p.is_available)
+      .map(product => {
+        // Baseline score: global importance score
+        let score = Number(product.importance_score || 0) * 0.1;
+
+        // Boost 1: Category Affinity (up to 100 points)
+        if (product.category_id && categoryPurchaseCount[product.category_id]) {
+          score += Math.min(100, categoryPurchaseCount[product.category_id] * 15);
+        }
+
+        // Boost 2: Repeat Purchases (high repeat purchase frequency gets prioritized)
+        const hasBought = productPurchaseCount[product.id];
+        if (hasBought) {
+          score += hasBought * 40;
+        }
+
+        return { product, score, hasBought: !!hasBought };
+      });
+
+    // 4. "Buy It Again" feed (previously purchased products sorted by frequency)
+    const buyItAgain = scoredProducts
+      .filter(item => item.hasBought)
+      .sort((a, b) => (productPurchaseCount[b.product.id] || 0) - (productPurchaseCount[a.product.id] || 0))
+      .map(item => item.product);
+
+    // 5. "Personalized Feed" (discovery and preference matching sorted by recommendation score)
+    const personalizedFeed = scoredProducts
+      .sort((a, b) => b.score - a.score)
+      .map(item => item.product);
+
+    return { personalizedFeed, buyItAgain };
+  }, [profile, products, userOrders]);
 
   const featuredProducts = products.slice(0, 8);
 
@@ -408,6 +483,45 @@ function HomeContent() {
                     : 'grid-cols-2 sm:grid-cols-2 lg:grid-cols-4'
                 }`}>
                   {products.filter(p => p.sale_price !== null && p.sale_price !== undefined && p.sale_price > 0).slice(0, 4).map((prod) => (
+                    <ProductCard key={prod.id} product={prod} layout={layoutMode} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Buy It Again Section */}
+            {profile && recommendations.buyItAgain.length > 0 && (
+              <div className="space-y-4 pt-6 border-t border-slate-200/50">
+                <h3 className="text-xs font-black text-slate-450 uppercase tracking-wider flex items-center gap-1.5 justify-end">
+                  أصناف تشتريها بشكل متكرر (أعد الشراء) 🔁
+                </h3>
+                <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-none flex-row-reverse">
+                  {recommendations.buyItAgain.slice(0, 10).map((prod) => (
+                    <div key={prod.id} className="w-48 flex-shrink-0">
+                      <ProductCard product={prod} layout="grid" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Personalized Recommendations Feed */}
+            {profile && (
+              <div className="space-y-4 pt-6 border-t border-slate-200/50">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-primary font-bold">
+                    {userOrders.length > 0 ? '✨ مخصصة بناءً على مشترياتك السابقة' : '🔥 المنتجات الأكثر مبيعاً اليوم'}
+                  </span>
+                  <h3 className="text-xs font-black text-slate-450 uppercase tracking-wider flex items-center gap-1.5">
+                    مقترحات خاصة لك اليوم 🎯
+                  </h3>
+                </div>
+                <div className={`grid gap-4 sm:gap-6 ${
+                  layoutMode === 'list' 
+                    ? 'grid-cols-1 md:grid-cols-2' 
+                    : 'grid-cols-2 sm:grid-cols-2 lg:grid-cols-4'
+                }`}>
+                  {recommendations.personalizedFeed.slice(0, 4).map((prod) => (
                     <ProductCard key={prod.id} product={prod} layout={layoutMode} />
                   ))}
                 </div>
