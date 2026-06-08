@@ -98,6 +98,7 @@ html, body {
         width: 50mm !important;
         height: 30mm !important;
         overflow: hidden !important;
+        background: #fff !important;
     }
 
     .labels-grid {
@@ -108,51 +109,59 @@ html, body {
     }
 
     .label-card {
-        width: 47mm !important;           /* أضيق قليلاً */
-        height: 29mm !important;          /* داخل حد 30mm */
-        margin-top: 0 !important;
+        width: 44mm !important;          /* أضيق لتعويض الهامش اليمين الأكبر */
+        height: 29mm !important;
+        margin-top: 0.5mm !important;
         margin-left: auto !important;
-        margin-right: 2.5mm !important;   /* إزاحة لليسار: ابعاد عن الحافة اليمنى */
+        margin-right: 5mm !important;    /* مضاعف لدفع الكارت لليسار */
         margin-bottom: 0 !important;
         padding: 1mm !important;
-        position: relative !important;
         box-sizing: border-box !important;
-        overflow: hidden !important;
         page-break-after: always !important;
         page-break-inside: avoid !important;
+
+        /* Flexbox لضمان ظهور السعر دائماً داخل الحدود */
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        overflow: hidden !important;
     }
 
     .product-name {
         font-size: 8.5pt !important;
-        margin-bottom: 0 !important;
-        height: 2em !important;
+        font-weight: bold !important;
         text-align: center !important;
+        margin: 0 !important;
+        line-height: 1.1 !important;
+        max-height: 2.2em !important;
+        width: 100% !important;
         overflow: hidden !important;
         display: -webkit-box !important;
         -webkit-line-clamp: 2 !important;
         -webkit-box-orient: vertical !important;
-        white-space: normal !important;
     }
 
     .barcode-container {
-        height: 10mm !important;
-        margin-top: 0 !important;
+        width: 100% !important;
         text-align: center !important;
-        transform: scale(0.85);           /* تصغير طفيف للحاوية */
-        transform-origin: top center;
+        margin: 0 auto !important;
+        transform: scale(0.85);
+        transform-origin: center center;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        flex-grow: 1 !important;         /* يأخذ المساحة الوسطى المتبقية */
     }
 
     .product-price {
-        font-size: 8.5pt !important;
+        font-size: 9pt !important;
         font-weight: bold !important;
-        position: absolute !important;
-        bottom: 1.5mm !important;         /* ثابت في الأسفل */
-        left: 0 !important;
-        right: 0 !important;
         text-align: center !important;
-        padding: 0 !important;
         margin: 0 !important;
+        padding-top: 0.5mm !important;
         border-top: 1px dashed #000 !important;
+        width: 100% !important;
     }
 }
 </style>
@@ -199,8 +208,8 @@ window.addEventListener('DOMContentLoaded', () => {
             try {
                 JsBarcode(svg, val, {
                     format: "CODE128",
-                    width: 1.4,       /* أرفع قليلاً لضمان التناسب الأفقي */
-                    height: 24,       /* قصير جداً لترك مساحة كافية للسعر */
+                    width: 1.4,
+                    height: 22,       /* مخفض لضمان مساحة كافية للسعر */
                     displayValue: true,
                     fontSize: 9,
                     textMargin: 1,
