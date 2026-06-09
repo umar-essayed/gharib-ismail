@@ -728,15 +728,16 @@ ipcMain.on('print-silent', (event, printerName, isLabel = false) => {
         if (senderContents.isDestroyed()) return;
 
         // Label: 50x30mm in microns (exact match to @page { size: 50mm 30mm })
-        // Receipt: 80mm wide × 297mm tall (longest common thermal roll, CUPS-accepted)
-        //          Using 'Custom' with explicit dimensions avoids 'A4' mismatch on thermal printers
+        // Receipt: use named 'A4' so Chromium lets the CSS @page { size: 80mm auto } override
+        //          — sending a fixed height (297000µm) conflicts with CSS 'auto' height
+        //            and causes CUPS on Linux to reject the job
         const printOptions = {
             silent: true,
             printBackground: true,
             margins: { marginType: 'none' },
             pageSize: isLabel
                 ? { width: 50000, height: 30000 }          // 50×30mm label
-                : { width: 80000, height: 297000 }          // 80mm thermal roll
+                : 'A4'                                      // Let CSS @page override for receipt
         };
 
         if (printerName) {

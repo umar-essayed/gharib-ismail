@@ -678,31 +678,31 @@
         absolutePrintUrl.searchParams.set('autoprint', '1');
         absolutePrintUrl.searchParams.set('self_close', '1');
 
-        let popup = pendingBrowserPrintPopup;
-        pendingBrowserPrintPopup = null;
+        const popupName = `pos-print-${payload.invoiceId || Date.now()}`;
+        const popupFeatures = [
+            'popup=yes',
+            'width=460',
+            'height=760',
+            'left=80',
+            'top=40',
+            'resizable=yes',
+            'scrollbars=yes',
+            'toolbar=no',
+            'location=no',
+            'menubar=no',
+            'status=no'
+        ].join(',');
 
-        if (!popup || popup.closed) {
-            const popupName = `pos-print-${payload.invoiceId || Date.now()}`;
-            const popupFeatures = [
-                'popup=yes',
-                'width=460',
-                'height=760',
-                'left=80',
-                'top=40',
-                'resizable=yes',
-                'scrollbars=yes',
-                'toolbar=no',
-                'location=no',
-                'menubar=no',
-                'status=no'
-            ].join(',');
-            popup = window.open('about:blank', popupName, popupFeatures);
-        }
+        // Open the fully-formed URL directly — Electron's setWindowOpenHandler
+        // intercepts it safely because the URL contains '/print'.
+        // (Opening about:blank first then navigating causes Electron's print
+        //  context to initialize against the blank page and then fail.)
+        const popup = window.open(absolutePrintUrl.href, popupName, popupFeatures);
+
         if (!popup) {
             throw new Error('المتصفح منع نافذة الطباعة. اسمح بالنوافذ المنبثقة للموقع.');
         }
 
-        popup.location.replace(absolutePrintUrl.href);
         try { popup.focus(); } catch (e) {}
 
         await new Promise((resolve) => {
@@ -783,30 +783,7 @@
             printJobIdInput.value = activePrintJobId;
             const useQz = qzAvailable();
             printTransport.value = useQz ? 'qz' : 'popup';
-            if (!useQz) {
-                const popupName = `pos-print-${activePrintJobId}`;
-                const popupFeatures = [
-                    'popup=yes',
-                    'width=460',
-                    'height=760',
-                    'left=80',
-                    'top=40',
-                    'resizable=yes',
-                    'scrollbars=yes',
-                    'toolbar=no',
-                    'location=no',
-                    'menubar=no',
-                    'status=no'
-                ].join(',');
-                pendingBrowserPrintPopup = window.open('about:blank', popupName, popupFeatures);
-                if (!pendingBrowserPrintPopup) {
-                    resetShortcutState();
-                    alert('المتصفح يمنع نافذة الطباعة. اسمح بالنوافذ المنبثقة للموقع ثم حاول F1 مرة أخرى.');
-                    keepSearchReady();
-                    return;
-                }
-                try { pendingBrowserPrintPopup.focus(); } catch (e) {}
-            }
+
             setTimeout(() => {
                 if (shortcutSubmitting && quickAction.value === 'print') {
                     resetShortcutState();
