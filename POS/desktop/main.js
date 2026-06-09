@@ -754,11 +754,11 @@ ipcMain.on('print-silent', (event, printerName, isLabel = false) => {
     
     // Print the webContents of the window that triggered the request
     event.sender.print(printOptions, (success, errorType) => {
-        if (!event.sender.isDestroyed()) {
-            event.sender.send('print-finished', { success, error: errorType });
-        }
         if (!success) {
             logPrintMessage(`[MAIN ERROR] Silent print failed. Error: "${errorType}", Printer: "${printerName || 'default'}", isLabel: ${isLabel}`);
+            if (!event.sender.isDestroyed()) {
+                event.sender.send('print-finished', { success, error: errorType });
+            }
             if (mainWindow) {
                 mainWindow.webContents.send('print-status', {
                     success: false,
@@ -773,6 +773,81 @@ ipcMain.on('print-silent', (event, printerName, isLabel = false) => {
                     success: true,
                     message: 'تمت عملية الطباعة صامتاً بنجاح ✓'
                 });
+            }
+
+            // Capture the page as image before sending print-finished to prevent premature window destruction
+            const webContents = event.sender;
+            if (webContents.isDestroyed()) {
+                return;
+            }
+
+            const win = BrowserWindow.fromWebContents(webContents);
+            if (win) {
+                webContents.executeJavaScript(`
+                    ({
+                        width: document.documentElement.scrollWidth || document.body.scrollWidth,
+                        height: document.documentElement.scrollHeight || document.body.scrollHeight
+                    })
+                `).then((dimensions) => {
+                    const width = isLabel ? 190 : 300; // 50mm label ~190px, 80mm receipt ~300px
+                    const height = dimensions.height || 600;
+
+                    logPrintMessage(`Resizing window to ${width}x${height} for screenshot`);
+                    if (!win.isDestroyed()) {
+                        win.setContentSize(width, height);
+                    }
+
+                    // Small delay to let layout repaint at new size
+                    setTimeout(() => {
+                        if (webContents.isDestroyed()) {
+                            return;
+                        }
+                        webContents.capturePage().then((image) => {
+                            const rootPath = path.join(__dirname, '..');
+                            const logDir = path.join(rootPath, 'storage', 'logs', 'prints');
+                            if (!fs.existsSync(logDir)) {
+                                fs.mkdirSync(logDir, { recursive: true });
+                            }
+
+                            let invoiceId = 'unknown';
+                            try {
+                                const currentUrl = webContents.getURL();
+                                const match = currentUrl.match(/\/sales\/(\d+)/);
+                                if (match && match[1]) {
+                                    invoiceId = match[1];
+                                } else if (currentUrl.includes('/barcode/')) {
+                                    invoiceId = 'barcode';
+                                }
+                            } catch (e) {}
+
+                            const dateStr = new Date().toISOString().replace(/[:.]/g, '-');
+                            const filename = `print-${invoiceId}-${dateStr}.png`;
+                            const filePath = path.join(logDir, filename);
+
+                            fs.writeFileSync(filePath, image.toPNG());
+                            logPrintMessage(`[SUCCESS] Saved print invoice image log: ${filePath}`);
+
+                            // Send print-finished now that image is saved
+                            if (!webContents.isDestroyed()) {
+                                webContents.send('print-finished', { success: true });
+                            }
+                        }).catch((err) => {
+                            logPrintMessage(`[ERROR] Failed to capture page: ${err.message}`);
+                            if (!webContents.isDestroyed()) {
+                                webContents.send('print-finished', { success: true });
+                            }
+                        });
+                    }, 150);
+                }).catch((err) => {
+                    logPrintMessage(`[ERROR] executeJavaScript for dimensions failed: ${err.message}`);
+                    if (!webContents.isDestroyed()) {
+                        webContents.send('print-finished', { success: true });
+                    }
+                });
+            } else {
+                if (!webContents.isDestroyed()) {
+                    webContents.send('print-finished', { success: true });
+                }
             }
         }
     });
