@@ -95,6 +95,9 @@
                                             <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">نشط</span>
                                         </td>
                                         <td class="text-end">
+                                            <button type="button" class="btn btn-sm btn-outline-primary py-1 px-2 border-0 me-1" onclick='editZone(<?= json_encode($zone['name']) ?>, <?= (float)$zone['price'] ?>)'>
+                                                ✏️ تعديل
+                                            </button>
                                             <form action="<?= url('/online-store/shipping/zones/delete') ?>" method="POST" class="d-inline" onsubmit="return confirm('هل أنت متأكد من حذف هذه المنطقة؟');">
                                                 <?= csrf_field() ?>
                                                 <input type="hidden" name="id" value="<?= e($zone['id']) ?>">
@@ -146,3 +149,19 @@
         </div>
     </div>
 </div>
+
+<script>
+function editZone(name, price) {
+    const nameInput = document.querySelector('input[name="name"]');
+    const priceInput = document.querySelector('input[name="price"]');
+    if (nameInput && priceInput) {
+        nameInput.value = name;
+        priceInput.value = price;
+        priceInput.focus();
+        priceInput.select();
+        
+        // Scroll the form into view smoothly
+        priceInput.closest('.card').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+</script>
