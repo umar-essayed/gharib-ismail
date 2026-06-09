@@ -472,6 +472,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
                 <img 
                   src={images[activeImageIndex]} 
                   alt={product.name}
+                  itemProp="image"
                   className="max-h-full max-w-full object-contain transition-all duration-300 transform scale-100 group-hover:scale-105 animate-fade-in"
                 />
               ) : (
