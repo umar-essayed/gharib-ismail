@@ -42,7 +42,8 @@ function CheckoutContent() {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
-  const [address, setAddress] = useState('');
+  const [selectedRegion, setSelectedRegion] = useState('الناصرية القديمة');
+  const [detailedAddress, setDetailedAddress] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('COD');
   
   // Checkout Processing States
@@ -123,7 +124,26 @@ function CheckoutContent() {
     if (profile) {
       setFullName(profile.full_name || '');
       setPhone(profile.phone || '');
-      setAddress(profile.address || '');
+      
+      const savedAddress = profile.address || '';
+      const regionsList = ['الناصرية القديمة', 'العامرية أول', 'الناصرية الجديدة'];
+      let matchedRegion = 'الناصرية القديمة';
+      let details = savedAddress;
+
+      for (const r of regionsList) {
+        if (savedAddress.startsWith(r)) {
+          matchedRegion = r;
+          let remainder = savedAddress.substring(r.length);
+          if (remainder.startsWith('،') || remainder.startsWith(',')) {
+            remainder = remainder.substring(1).trim();
+          }
+          details = remainder.trim();
+          break;
+        }
+      }
+      setSelectedRegion(matchedRegion);
+      setDetailedAddress(details);
+
       setCheckoutStep('address');
       loadPastOrders(profile.id);
     } else {
@@ -267,10 +287,13 @@ function CheckoutContent() {
   // Step 2: Handle Finalizing Order Submission
   const handleOrderSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!address.trim()) {
-      setAuthError('الرجاء كتابة عنوان الشحن تفصيلياً.');
+    if (!detailedAddress.trim()) {
+      setAuthError('الرجاء كتابة تفاصيل العنوان بالكامل لضمان وصول الشحنة.');
       return;
     }
+
+    // Function to join the selected region and detailed address
+    const combinedAddress = `${selectedRegion}، ${detailedAddress.trim()}`;
 
     try {
       setOrderLoading(true);
@@ -305,7 +328,7 @@ function CheckoutContent() {
         body: JSON.stringify({
           items: orderItems,
           total_price: finalTotal,
-          delivery_address: address,
+          delivery_address: combinedAddress,
           delivery_phone: phone,
           payment_method: paymentMethod,
           user_id: profile?.id || null
@@ -340,7 +363,7 @@ function CheckoutContent() {
         await supabase
           .from('profiles')
           .update({ 
-            address: address,
+            address: combinedAddress,
             points: newPoints
           })
           .eq('id', profile.id);
@@ -613,19 +636,37 @@ function CheckoutContent() {
                   </div>
 
                   {/* Shipping Address */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-gray-700 flex items-center gap-1.5 justify-end">
-                      عنوان التوصيل التفصيلي (الناصرية أو العامرية) *
-                      <MapPin size={14} className="text-primary" />
-                    </label>
-                    <textarea
-                      required
-                      rows={3}
-                      placeholder="اكتب اسم الشارع، رقم العمارة أو المحل، وأي علامات مميزة قريبة للتسليم الفوري"
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      className="w-full bg-gray-50 border border-gray-250 rounded-xl px-4 py-2.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-primary focus:bg-white text-gray-900 transition-all"
-                    />
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-gray-700 flex items-center gap-1.5 justify-end">
+                        منطقة الشحن والتوصيل *
+                        <span className="text-primary">🚚</span>
+                      </label>
+                      <select
+                        value={selectedRegion}
+                        onChange={(e) => setSelectedRegion(e.target.value)}
+                        className="w-full bg-gray-50 border border-gray-250 rounded-xl px-4 py-2.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-primary focus:bg-white text-gray-900 transition-all font-bold cursor-pointer font-sans"
+                      >
+                        <option value="الناصرية القديمة">الناصرية القديمة (الشحن الافتراضي)</option>
+                        <option value="العامرية أول">العامرية أول</option>
+                        <option value="الناصرية الجديدة">الناصرية الجديدة</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-gray-700 flex items-center gap-1.5 justify-end">
+                        تفاصيل العنوان بالكامل *
+                        <MapPin size={14} className="text-primary" />
+                      </label>
+                      <textarea
+                        required
+                        rows={3}
+                        placeholder="اكتب اسم الشارع، رقم العمارة أو المحل، وأي علامات مميزة قريبة للتسليم الفوري"
+                        value={detailedAddress}
+                        onChange={(e) => setDetailedAddress(e.target.value)}
+                        className="w-full bg-gray-55 border border-gray-250 rounded-xl px-4 py-2.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-primary focus:bg-white text-gray-900 transition-all leading-relaxed font-sans"
+                      />
+                    </div>
                   </div>
 
                   {/* Coupon section */}
