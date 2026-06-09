@@ -780,6 +780,26 @@ ipcMain.on('print-silent', (event, printerName, isLabel = false) => {
     }
 });
 
+// IPC Handler to open a clean background window for a direct URL print job
+ipcMain.on('print-url', (event, url) => {
+    const workerWindow = new BrowserWindow({
+        show: false, // Completely hidden in the background
+        webPreferences: {
+            preload: path.join(__dirname, 'preload.js'),
+            contextIsolation: true,
+            nodeIntegration: false
+        }
+    });
+    
+    // Load the exact print page URL (this triggers print.php wrapper natively)
+    workerWindow.loadURL(url);
+    
+    // Automatically clean up memory when the window finishes and self-closes
+    workerWindow.on('closed', () => {
+        console.log(`Print worker window closed successfully for URL: ${url}`);
+    });
+});
+
 // IPC Handler to quit app
 ipcMain.on('quit-app', () => {
     app.quit();

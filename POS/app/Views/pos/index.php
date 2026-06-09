@@ -669,57 +669,6 @@
         await window.qz.print(config, data);
     }
 
-    async function silentPrintWithBrowserPopup(payload){
-        if (!payload || !payload.printUrl) {
-            throw new Error('بيانات الطباعة غير مكتملة');
-        }
-
-        const absolutePrintUrl = new URL(String(payload.printUrl), window.location.origin);
-        absolutePrintUrl.searchParams.set('autoprint', '1');
-        absolutePrintUrl.searchParams.set('self_close', '1');
-
-        const popupName = `pos-print-${payload.invoiceId || Date.now()}`;
-        const popupFeatures = [
-            'popup=yes',
-            'width=460',
-            'height=760',
-            'left=80',
-            'top=40',
-            'resizable=yes',
-            'scrollbars=yes',
-            'toolbar=no',
-            'location=no',
-            'menubar=no',
-            'status=no'
-        ].join(',');
-
-        // Open the fully-formed URL directly — Electron's setWindowOpenHandler
-        // intercepts it safely because the URL contains '/print'.
-        // (Opening about:blank first then navigating causes Electron's print
-        //  context to initialize against the blank page and then fail.)
-        const popup = window.open(absolutePrintUrl.href, popupName, popupFeatures);
-
-        if (!popup) {
-            throw new Error('المتصفح منع نافذة الطباعة. اسمح بالنوافذ المنبثقة للموقع.');
-        }
-
-        try { popup.focus(); } catch (e) {}
-
-        await new Promise((resolve) => {
-            const startedAt = Date.now();
-            const timer = window.setInterval(() => {
-                if (popup.closed) {
-                    window.clearInterval(timer);
-                    resolve();
-                    return;
-                }
-                if (Date.now() - startedAt > 180000) {
-                    window.clearInterval(timer);
-                    resolve();
-                }
-            }, 500);
-        });
-    }
 
     function prepareShortcutPayment(){
         const total = cartTotal();
@@ -1396,35 +1345,30 @@
                 showTemporaryAlert(data.message, 'success');
                 
                 if (isPrintShortcut) {
-                    const useQz = qzAvailable();
-                    const payload = {
-                        printUrl: '<?= url('/sales/') ?>' + data.invoice_id + '/print',
-                        invoiceId: data.invoice_id,
-                        invoiceNo: data.invoice_no
-                    };
+                    // Build the exact direct print URL with automatic print and self-close flags
+                    const printUrl = `${window.location.origin}/sales/${data.invoice_id}/print?autoprint=1&self_close=1`;
                     
-                    if (useQz) {
+                    if (qzAvailable()) {
+                        const payload = {
+                            printUrl: '<?= url('/sales/') ?>' + data.invoice_id + '/print',
+                            invoiceId: data.invoice_id,
+                            invoiceNo: data.invoice_no
+                        };
                         silentPrintWithQz(payload)
-                            .then(() => {
-                                finalizeSuccessfulPrint();
-                            })
+                            .then(() => { finalizeSuccessfulPrint(); })
                             .catch((err) => {
                                 finalizeSuccessfulPrint();
-                                const details = err && err.message ? `\n${err.message}` : '';
-                                alert('تم حفظ الفاتورة لكن تعذر الطباعة الصامتة عبر QZ Tray.\nرقم الفاتورة: ' + data.invoice_no + '\nيمكنك إعادة الطباعة من شاشة المبيعات بعد التأكد من تشغيل QZ Tray.' + details);
+                                alert('تم حفظ الفاتورة لكن تعذر الطباعة عبر QZ Tray.');
                                 keepSearchReady();
                             });
+                    } else if (window.electronAPI && typeof window.electronAPI.printUrl === 'function') {
+                        // THE DIRECT FIX: Pass the URL to the main process to load cleanly just like the invoices page
+                        window.electronAPI.printUrl(printUrl);
+                        finalizeSuccessfulPrint();
                     } else {
-                        silentPrintWithBrowserPopup(payload)
-                            .then(() => {
-                                finalizeSuccessfulPrint();
-                            })
-                            .catch((err) => {
-                                resetShortcutState();
-                                const details = err && err.message ? `\n${err.message}` : '';
-                                alert('تم حفظ الفاتورة لكن تعذر فتح نافذة الطباعة.' + details);
-                                keepSearchReady();
-                            });
+                        // Standard browser popup fallback if running outside Electron
+                        window.open(printUrl, `pos-print-${data.invoice_id}`, 'width=460,height=760');
+                        finalizeSuccessfulPrint();
                     }
                 } else {
                     finalizeSuccessfulPrint();
