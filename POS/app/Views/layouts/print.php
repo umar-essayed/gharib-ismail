@@ -155,7 +155,11 @@
 
     window.addEventListener('afterprint', () => {
         log('afterprint event fired');
-        finish('pos-print-complete');
+        if (!window.electronAPI) {
+            finish('pos-print-complete');
+        } else {
+            log('afterprint event ignored inside Electron to prevent premature window closure (waiting for onPrintFinished)');
+        }
     });
 })();
 </script>
