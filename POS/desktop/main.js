@@ -735,138 +735,165 @@ app.on('quit', () => {
 // IPC Handler to trigger native silent printing
 ipcMain.on('print-silent', (event, printerName, isLabel = false) => {
     logPrintMessage(`[MAIN] print-silent event triggered. Printer: "${printerName || 'default'}", isLabel: ${isLabel}`);
-    
-    // Set page size dynamically: 50x30mm for barcode labels, 80x300mm for receipts
-    const labelPageSize  = { width: 50000,  height: 30000  }; // 50mm × 30mm in microns
-    const receiptPageSize = { width: 80000,  height: 300000 }; // 80mm × 300mm in microns
 
-    const printOptions = {
-        silent: true,
-        printBackground: true,
-        margins: {
-            marginType: 'none' // إلغاء الهوامش تماماً لمنع تصغير الفاتورة لحجم النصف مللي
-        },
-        pageSize: isLabel ? labelPageSize : receiptPageSize
-    };
-    if (printerName) {
-        printOptions.deviceName = printerName;
+    const webContents = event.sender;
+    if (webContents.isDestroyed()) {
+        return;
     }
-    
-    // Print the webContents of the window that triggered the request
-    event.sender.print(printOptions, (success, errorType) => {
-        if (!success) {
-            logPrintMessage(`[MAIN ERROR] Silent print failed. Error: "${errorType}", Printer: "${printerName || 'default'}", isLabel: ${isLabel}`);
-            if (!event.sender.isDestroyed()) {
-                event.sender.send('print-finished', { success, error: errorType });
-            }
-            if (mainWindow) {
-                mainWindow.webContents.send('print-status', {
-                    success: false,
-                    error: errorType,
-                    message: 'فشلت عملية الطباعة: ' + errorType
-                });
-            }
-        } else {
-            logPrintMessage(`[MAIN SUCCESS] Silent print succeeded. Printer: "${printerName || 'default'}"`);
-            if (mainWindow) {
-                mainWindow.webContents.send('print-status', {
-                    success: true,
-                    message: 'تمت عملية الطباعة صامتاً بنجاح ✓'
-                });
-            }
 
-            // Capture the page as image before sending print-finished to prevent premature window destruction
-            const webContents = event.sender;
-            if (webContents.isDestroyed()) {
-                return;
-            }
+    // Measure actual document height to prevent cutoff on long receipts
+    const measurePromise = isLabel 
+        ? Promise.resolve({ height: 113 }) 
+        : webContents.executeJavaScript(`
+            ({
+                height: document.documentElement.scrollHeight || document.body.scrollHeight || 600
+            })
+        `).catch((err) => {
+            logPrintMessage(`[MAIN WARNING] Failed to measure print height: ${err.message}. Using fallback.`);
+            return { height: 1000 };
+        });
 
-            // Emulate print media type so page renders using printer CSS (white background, no dashed border/margins)
-            if (typeof webContents.emulateMediaType === 'function') {
-                webContents.emulateMediaType('print');
-            } else if (typeof webContents.setEmulateMedia === 'function') {
-                webContents.setEmulateMedia('print');
+    measurePromise.then((dimensions) => {
+        const docHeight = dimensions.height || 600;
+        // Convert pixels to microns (1px ≈ 264.58 microns). Add 50000 microns (5cm) padding to prevent any edge cutoff
+        const calculatedHeight = isLabel ? 30000 : Math.max(300000, Math.round(docHeight * 265) + 50000);
+        
+        logPrintMessage(`[MAIN] Measured document height: ${docHeight}px. Setting page height to ${calculatedHeight} microns.`);
+
+        // Set page size dynamically: 50x30mm for barcode labels, 80x[calculated]mm for receipts
+        const labelPageSize  = { width: 50000,  height: 30000  }; // 50mm × 30mm in microns
+        const receiptPageSize = { width: 80000,  height: calculatedHeight }; // 80mm × dynamic height in microns
+
+        const printOptions = {
+            silent: true,
+            printBackground: true,
+            margins: {
+                marginType: 'none' // إلغاء الهوامش تماماً لمنع تصغير الفاتورة لحجم النصف مللي
+            },
+            pageSize: isLabel ? labelPageSize : receiptPageSize
+        };
+        if (printerName) {
+            printOptions.deviceName = printerName;
+        }
+
+        if (webContents.isDestroyed()) {
+            return;
+        }
+
+        // Print the webContents of the window that triggered the request
+        webContents.print(printOptions, (success, errorType) => {
+            if (!success) {
+                logPrintMessage(`[MAIN ERROR] Silent print failed. Error: "${errorType}", Printer: "${printerName || 'default'}", isLabel: ${isLabel}`);
+                if (!webContents.isDestroyed()) {
+                    webContents.send('print-finished', { success, error: errorType });
+                }
+                if (mainWindow) {
+                    mainWindow.webContents.send('print-status', {
+                        success: false,
+                        error: errorType,
+                        message: 'فشلت عملية الطباعة: ' + errorType
+                    });
+                }
             } else {
-                logPrintMessage('[MAIN WARNING] Neither emulateMediaType nor setEmulateMedia is available on webContents');
-            }
+                logPrintMessage(`[MAIN SUCCESS] Silent print succeeded. Printer: "${printerName || 'default'}"`);
+                if (mainWindow) {
+                    mainWindow.webContents.send('print-status', {
+                        success: true,
+                        message: 'تمت عملية الطباعة صامتاً بنجاح ✓'
+                    });
+                }
 
-            const win = BrowserWindow.fromWebContents(webContents);
-            if (win) {
-                webContents.executeJavaScript(`
-                    ({
-                        width: document.documentElement.scrollWidth || document.body.scrollWidth,
-                        height: document.documentElement.scrollHeight || document.body.scrollHeight,
-                        labelCount: document.querySelectorAll('.label-card').length
-                    })
-                `).then((dimensions) => {
-                    let width, height;
-                    if (isLabel) {
-                        const labelCount = dimensions.labelCount || 1;
-                        width = 189; // 50mm label width at 96 DPI
-                        height = Math.round(113.4 * labelCount); // 30mm label height per label at 96 DPI
-                    } else {
-                        width = 300; // 80mm receipt width at 96 DPI
-                        height = dimensions.height || 600;
-                    }
+                if (webContents.isDestroyed()) {
+                    return;
+                }
 
-                    logPrintMessage(`Resizing print window to exact physical bounds: ${width}x${height} (labels: ${dimensions.labelCount || 0})`);
-                    if (!win.isDestroyed()) {
-                        win.setContentSize(width, height);
-                    }
+                // Emulate print media type so page renders using printer CSS (white background, no dashed border/margins)
+                if (typeof webContents.emulateMediaType === 'function') {
+                    webContents.emulateMediaType('print');
+                } else if (typeof webContents.setEmulateMedia === 'function') {
+                    webContents.setEmulateMedia('print');
+                } else {
+                    logPrintMessage('[MAIN WARNING] Neither emulateMediaType nor setEmulateMedia is available on webContents');
+                }
 
-                    // Small delay to let layout repaint at new size
-                    setTimeout(() => {
-                        if (webContents.isDestroyed()) {
-                            return;
+                const win = BrowserWindow.fromWebContents(webContents);
+                if (win) {
+                    webContents.executeJavaScript(`
+                        ({
+                            width: document.documentElement.scrollWidth || document.body.scrollWidth,
+                            height: document.documentElement.scrollHeight || document.body.scrollHeight,
+                            labelCount: document.querySelectorAll('.label-card').length
+                        })
+                    `).then((dims) => {
+                        let width, height;
+                        if (isLabel) {
+                            const labelCount = dims.labelCount || 1;
+                            width = 189; // 50mm label width at 96 DPI
+                            height = Math.round(113.4 * labelCount); // 30mm label height per label at 96 DPI
+                        } else {
+                            width = 300; // 80mm receipt width at 96 DPI
+                            height = dims.height || 600;
                         }
-                        webContents.capturePage().then((image) => {
-                            const rootPath = path.join(__dirname, '..');
-                            const logDir = path.join(rootPath, 'storage', 'logs', 'prints');
-                            if (!fs.existsSync(logDir)) {
-                                fs.mkdirSync(logDir, { recursive: true });
-                            }
 
-                            let invoiceId = 'unknown';
-                            try {
-                                const currentUrl = webContents.getURL();
-                                const match = currentUrl.match(/\/sales\/(\d+)/);
-                                if (match && match[1]) {
-                                    invoiceId = match[1];
-                                } else if (currentUrl.includes('/barcode/')) {
-                                    invoiceId = 'barcode';
+                        logPrintMessage(`Resizing print window to exact physical bounds: ${width}x${height} (labels: ${dims.labelCount || 0})`);
+                        if (!win.isDestroyed()) {
+                            win.setContentSize(width, height);
+                        }
+
+                        // Small delay to let layout repaint at new size
+                        setTimeout(() => {
+                            if (webContents.isDestroyed()) {
+                                return;
+                            }
+                            webContents.capturePage().then((image) => {
+                                const rootPath = path.join(__dirname, '..');
+                                const logDir = path.join(rootPath, 'storage', 'logs', 'prints');
+                                if (!fs.existsSync(logDir)) {
+                                    fs.mkdirSync(logDir, { recursive: true });
                                 }
-                            } catch (e) {}
 
-                            const dateStr = new Date().toISOString().replace(/[:.]/g, '-');
-                            const filename = `print-${invoiceId}-${dateStr}.png`;
-                            const filePath = path.join(logDir, filename);
+                                let invoiceId = 'unknown';
+                                try {
+                                    const currentUrl = webContents.getURL();
+                                    const match = currentUrl.match(/\/sales\/(\d+)/);
+                                    if (match && match[1]) {
+                                        invoiceId = match[1];
+                                    } else if (currentUrl.includes('/barcode/')) {
+                                        invoiceId = 'barcode';
+                                    }
+                                } catch (e) {}
 
-                            fs.writeFileSync(filePath, image.toPNG());
-                            logPrintMessage(`[SUCCESS] Saved print invoice image log: ${filePath}`);
+                                const dateStr = new Date().toISOString().replace(/[:.]/g, '-');
+                                const filename = `print-${invoiceId}-${dateStr}.png`;
+                                const filePath = path.join(logDir, filename);
 
-                            // Send print-finished now that image is saved
-                            if (!webContents.isDestroyed()) {
-                                webContents.send('print-finished', { success: true });
-                            }
-                        }).catch((err) => {
-                            logPrintMessage(`[ERROR] Failed to capture page: ${err.message}`);
-                            if (!webContents.isDestroyed()) {
-                                webContents.send('print-finished', { success: true });
-                            }
-                        });
-                    }, 150);
-                }).catch((err) => {
-                    logPrintMessage(`[ERROR] executeJavaScript for dimensions failed: ${err.message}`);
+                                fs.writeFileSync(filePath, image.toPNG());
+                                logPrintMessage(`[SUCCESS] Saved print invoice image log: ${filePath}`);
+
+                                // Send print-finished now that image is saved
+                                if (!webContents.isDestroyed()) {
+                                    webContents.send('print-finished', { success: true });
+                                }
+                            }).catch((err) => {
+                                logPrintMessage(`[ERROR] Failed to capture page: ${err.message}`);
+                                if (!webContents.isDestroyed()) {
+                                    webContents.send('print-finished', { success: true });
+                                }
+                            });
+                        }, 150);
+                    }).catch((err) => {
+                        logPrintMessage(`[ERROR] executeJavaScript for dimensions failed: ${err.message}`);
+                        if (!webContents.isDestroyed()) {
+                            webContents.send('print-finished', { success: true });
+                        }
+                    });
+                } else {
                     if (!webContents.isDestroyed()) {
                         webContents.send('print-finished', { success: true });
                     }
-                });
-            } else {
-                if (!webContents.isDestroyed()) {
-                    webContents.send('print-finished', { success: true });
                 }
             }
-        }
+        });
     });
 });
 

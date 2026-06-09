@@ -1191,6 +1191,8 @@
         }
 
         e.preventDefault();
+        
+        // 1. Try to find exact match by barcode/SKU/internal code locally
         const found = findProductForScan(query) || (fallbackQuery !== query ? findProductForScan(fallbackQuery) : null);
         if (found) {
             addItem(found);
@@ -1198,13 +1200,25 @@
             return;
         }
 
-        const visible = productCards.filter((entry) => query === '' || entry.searchText.includes(query));
-        if (visible.length === 1) {
-            addItem(visible[0].product);
-            keepSearchReady(true);
+        // 2. Try to find local matches in the filtered list
+        const visibleItems = Array.from(productsWrap.querySelectorAll('.pos-product-item'));
+        if (visibleItems.length === 1) {
+            const pid = parseInt(visibleItems[0].dataset.productId, 10);
+            const product = productsIndex[pid];
+            if (product) {
+                addItem(product);
+                keepSearchReady(true);
+                return;
+            }
+        } else if (visibleItems.length > 1) {
+            // Multiple items in local list -> highlight the first one so they can see and select it
+            visibleItems.forEach(item => item.classList.remove('highlighted'));
+            visibleItems[0].classList.add('highlighted');
+            visibleItems[0].scrollIntoView({ block: 'nearest' });
             return;
         }
 
+        // 3. Fallback to server-side search
         try {
             const payload = await lookupProductWithFallback(rawQuery);
             const rows = Array.isArray(payload.data) ? payload.data : [];
@@ -1249,12 +1263,44 @@
                 return;
             }
 
-            // Product not found or multiple matches returned from server
-            alert('الصنف غير موجود أو يوجد أكثر من تطابق');
-            keepSearchReady(true);
+            if (rows.length > 1) {
+                // If server returns multiple rows, update local catalog
+                rows.forEach((product) => {
+                    if (!productsIndex[product.id]) {
+                        productsIndex[product.id] = product;
+                        addExactScanKey(product.barcode, product);
+                        addExactScanKey(product.sku, product);
+                        addExactScanKey(product.internal_code, product);
+                        
+                        const normalizedName = normalizeSearchText(product.name);
+                        const searchText = [
+                            normalizedName,
+                            normalizeSearchText(product.barcode),
+                            normalizeSearchText(product.sku),
+                            normalizeSearchText(product.internal_code)
+                        ].filter(Boolean).join(' ');
+                        productCards.push({
+                            product,
+                            normalizedName,
+                            searchText,
+                        });
+                    }
+                });
+                filterProductsList();
+                
+                const newVisible = Array.from(productsWrap.querySelectorAll('.pos-product-item'));
+                if (newVisible.length > 0) {
+                    newVisible[0].classList.add('highlighted');
+                }
+                return;
+            }
+
+            // Product not found
+            alert('الصنف غير موجود');
+            keepSearchReady(false); // Do not clear search query on fail so user can fix typos
         } catch (err) {
             alert((err && err.message) ? err.message : 'تعذر قراءة الباركود');
-            keepSearchReady(true);
+            keepSearchReady(false); // Do not clear search query on fail so user can fix typos
         }
     });
 
@@ -1722,6 +1768,24 @@
         .finally(() => {
             if (holdBtn) holdBtn.disabled = false;
         });
+    });
+
+    // Keep search focused when clicking empty areas
+    document.addEventListener('click', (e) => {
+        const tag = e.target.tagName.toLowerCase();
+        const ignore = ['input', 'select', 'textarea', 'button', 'a'];
+        if (!ignore.includes(tag) && !e.target.closest('.pos-product-item') && !e.target.closest('[data-rm]') && !e.target.closest('[data-mrm]')) {
+            keepSearchReady();
+        }
+    });
+
+    // Auto-focus search when typing printable characters on the body
+    document.addEventListener('keypress', (e) => {
+        const tag = String(e.target?.tagName || '').toLowerCase();
+        const ignore = ['input', 'select', 'textarea'];
+        if (!ignore.includes(tag)) {
+            search.focus();
+        }
     });
 
     renderPaymentMethodOptions();
