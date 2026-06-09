@@ -1,4 +1,12 @@
 <?php $title = 'شاشة نقطة البيع'; ?>
+<style>
+.pos-product-item.highlighted {
+    background: #e2fbe8 !important;
+    border-color: #16a34a !important;
+    box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.25) !important;
+    transform: translateY(-1px);
+}
+</style>
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h5 class="mb-0">نقطة البيع POS</h5>
     <div>
@@ -1134,7 +1142,45 @@
     });
 
     search.addEventListener('keydown', async (e) => {
+        // Arrow key navigation through search results
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            const items = Array.from(productsWrap.querySelectorAll('.pos-product-item'));
+            if (items.length === 0) return;
+
+            const currentIndex = items.findIndex(item => item.classList.contains('highlighted'));
+            let nextIndex = -1;
+
+            if (e.key === 'ArrowDown') {
+                nextIndex = (currentIndex + 1) % items.length;
+            } else {
+                nextIndex = (currentIndex - 1 + items.length) % items.length;
+            }
+
+            items.forEach(item => item.classList.remove('highlighted'));
+            const targetItem = items[nextIndex];
+            targetItem.classList.add('highlighted');
+            
+            // Automatically scroll the container to keep highlighted item in view
+            targetItem.scrollIntoView({ block: 'nearest' });
+            return;
+        }
+
         if (e.key !== 'Enter') return;
+
+        // Check if there is a highlighted item first
+        const highlightedItem = productsWrap.querySelector('.pos-product-item.highlighted');
+        if (highlightedItem) {
+            e.preventDefault();
+            const pid = parseInt(highlightedItem.dataset.productId, 10);
+            const product = productsIndex[pid];
+            if (product) {
+                addItem(product);
+                keepSearchReady(true);
+            }
+            return;
+        }
+
         const rawQuery = String(search.value || '').trim();
         const query = normalizeSearchText(rawQuery);
         const fallbackQuery = normalizeSearchText(normalizeScannedQuery(rawQuery));
