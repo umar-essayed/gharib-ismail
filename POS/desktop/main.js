@@ -782,7 +782,13 @@ ipcMain.on('print-silent', (event, printerName, isLabel = false) => {
             }
 
             // Emulate print media type so page renders using printer CSS (white background, no dashed border/margins)
-            webContents.emulateMediaType('print');
+            if (typeof webContents.emulateMediaType === 'function') {
+                webContents.emulateMediaType('print');
+            } else if (typeof webContents.setEmulateMedia === 'function') {
+                webContents.setEmulateMedia('print');
+            } else {
+                logPrintMessage('[MAIN WARNING] Neither emulateMediaType nor setEmulateMedia is available on webContents');
+            }
 
             const win = BrowserWindow.fromWebContents(webContents);
             if (win) {
