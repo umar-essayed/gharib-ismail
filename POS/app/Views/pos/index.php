@@ -1035,9 +1035,16 @@
             search.value = '';
             filterProductsList();
         }
+        // Use 80ms to allow render() DOM reflow to complete first
         setTimeout(() => {
-            search.focus();
-        }, 0);
+            try { search.focus(); search.select(); } catch (e) {}
+        }, 80);
+        // Second safety net attempt
+        setTimeout(() => {
+            if (document.activeElement !== search) {
+                try { search.focus(); } catch (e) {}
+            }
+        }, 200);
     }
 
     paymentMethod.addEventListener('change', () => {

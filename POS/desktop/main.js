@@ -722,47 +722,60 @@ app.on('quit', () => {
 
 // IPC Handler to trigger native silent printing
 ipcMain.on('print-silent', (event, printerName, isLabel = false) => {
-    // Label: fixed 50x30mm in microns (matches @page { size: 50mm 30mm })
-    // Receipt: use named 'A4' so Chromium lets the CSS @page { size: 80mm auto } override
-    //          — sending a fixed height (300000µm) conflicts with CSS 'auto' height
-    //            and causes CUPS on Linux to reject the job
-    const labelPageSize = { width: 50000, height: 30000 }; // 50mm × 30mm in microns
+    const senderContents = event.sender;
 
-    const printOptions = {
-        silent: true,
-        printBackground: true,
-        margins: {
-            marginType: 'none'
-        },
-        pageSize: isLabel ? labelPageSize : 'A4'
+    const doPrint = () => {
+        if (senderContents.isDestroyed()) return;
+
+        // Label: 50x30mm in microns (exact match to @page { size: 50mm 30mm })
+        // Receipt: 80mm wide × 297mm tall (longest common thermal roll, CUPS-accepted)
+        //          Using 'Custom' with explicit dimensions avoids 'A4' mismatch on thermal printers
+        const printOptions = {
+            silent: true,
+            printBackground: true,
+            margins: { marginType: 'none' },
+            pageSize: isLabel
+                ? { width: 50000, height: 30000 }          // 50×30mm label
+                : { width: 80000, height: 297000 }          // 80mm thermal roll
+        };
+
+        if (printerName) {
+            printOptions.deviceName = printerName;
+        }
+
+        senderContents.print(printOptions, (success, errorType) => {
+            if (!senderContents.isDestroyed()) {
+                senderContents.send('print-finished', { success, error: errorType || null });
+            }
+            if (!success) {
+                console.error('Silent print failed:', errorType);
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.webContents.send('print-status', {
+                        success: false,
+                        error: errorType,
+                        message: 'فشلت عملية الطباعة: ' + errorType
+                    });
+                }
+            } else {
+                console.log('Silent print succeeded!');
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.webContents.send('print-status', {
+                        success: true,
+                        message: 'تمت عملية الطباعة صامتاً بنجاح ✓'
+                    });
+                }
+            }
+        });
     };
-    if (printerName) {
-        printOptions.deviceName = printerName;
+
+    // If page is still loading, wait for it — otherwise print immediately
+    if (senderContents.isLoading()) {
+        senderContents.once('did-finish-load', () => {
+            setTimeout(doPrint, 300);
+        });
+    } else {
+        doPrint();
     }
-    // Print the webContents of the window that triggered the request
-    event.sender.print(printOptions, (success, errorType) => {
-        if (!event.sender.isDestroyed()) {
-            event.sender.send('print-finished', { success, error: errorType });
-        }
-        if (!success) {
-            console.error('Silent print failed:', errorType);
-            if (mainWindow) {
-                mainWindow.webContents.send('print-status', {
-                    success: false,
-                    error: errorType,
-                    message: 'فشلت عملية الطباعة: ' + errorType
-                });
-            }
-        } else {
-            console.log('Silent print succeeded!');
-            if (mainWindow) {
-                mainWindow.webContents.send('print-status', {
-                    success: true,
-                    message: 'تمت عملية الطباعة صامتاً بنجاح ✓'
-                });
-            }
-        }
-    });
 });
 
 // IPC Handler to quit app
