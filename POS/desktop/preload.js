@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer, webFrame } = require('electron');
 contextBridge.exposeInMainWorld('electronAPI', {
     printSilent: (printerName, isLabel = false) => ipcRenderer.send('print-silent', printerName, isLabel),
     printUrl: (url) => ipcRenderer.send('print-direct-url', url), // NEW: Direct Main-Process printing
+    logPrint: (message) => ipcRenderer.send('log-print', message), // NEW: Log printing steps to file
     quitApp: () => ipcRenderer.send('quit-app'),
     getPrinters: () => ipcRenderer.invoke('get-printers'),
     checkTunnelStatus: () => ipcRenderer.invoke('check-tunnel-status'),

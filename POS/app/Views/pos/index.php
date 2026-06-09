@@ -1391,6 +1391,10 @@
                     // Construct the exact, clean direct printing link
                     const printUrl = `${window.location.origin}/sales/${data.invoice_id}/print?autoprint=1&self_close=1`;
                     
+                    if (window.electronAPI && typeof window.electronAPI.logPrint === 'function') {
+                        window.electronAPI.logPrint('F1 Print initiated from POS screen. invoiceId: ' + data.invoice_id + ', printUrl: ' + printUrl);
+                    }
+                    
                     if (qzAvailable()) {
                         const payload = {
                             printUrl: '<?= url('/sales/') ?>' + data.invoice_id + '/print',

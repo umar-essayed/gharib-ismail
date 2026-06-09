@@ -67,7 +67,14 @@
         } catch (e) {}
     };
 
+    const log = (msg) => {
+        if (window.electronAPI && typeof window.electronAPI.logPrint === 'function') {
+            window.electronAPI.logPrint(msg);
+        }
+    };
+
     const finish = (type = 'pos-print-complete', message = '') => {
+        log('finish() called with type: "' + type + '", message: "' + message + '"');
         if (completed) return;
         completed = true;
 
@@ -86,7 +93,9 @@
     };
 
     window.addEventListener('load', () => {
+        log('Load event fired. pathname: ' + window.location.pathname + ', search: ' + window.location.search);
         if (shouldPrint) {
+            log('Initiating automatic silent printing...');
             setTimeout(() => {
                 try {
                     if (window.electronAPI) {
@@ -94,6 +103,7 @@
                             ? (<?= json_encode(\App\Services\SettingsService::get('label_printer', '')) ?> || <?= json_encode(\App\Services\SettingsService::get('default_printer', '')) ?>)
                             : <?= json_encode(\App\Services\SettingsService::get('default_printer', '')) ?>;
 
+                        log('Electron environment detected. Printer: "' + (printerName || 'default') + '", isLabel: ' + isLabel);
                         // Pass isLabel as second parameter so Electron uses the correct page size
                         window.electronAPI.printSilent(printerName, isLabel);
 
@@ -101,7 +111,9 @@
                         // Register the callback here (inside the setTimeout) so it fires
                         // after the print job is confirmed finished by the print engine.
                         if (typeof window.electronAPI.onPrintFinished === 'function') {
+                            log('Registering onPrintFinished callback listener...');
                             window.electronAPI.onPrintFinished((data) => {
+                                log('onPrintFinished triggered. success: ' + data.success + ', error: ' + (data.error || 'none'));
                                 if (!completed) {
                                     if (data.success) {
                                         finish('pos-print-complete');
@@ -115,11 +127,13 @@
                                 }
                             });
                         } else {
+                            log('No onPrintFinished callback found in electronAPI. Assuming success in 2000ms.');
                             // No callback available — assume success after a safe delay
                             setTimeout(() => { finish('pos-print-complete'); }, 2000);
                         }
 
                     } else {
+                        log('Non-Electron environment. Using browser window.print()');
                         // Non-Electron browser fallback
                         window.print();
 
@@ -128,16 +142,21 @@
                         if (selfClose) { setTimeout(() => { finish('pos-print-complete'); }, 900);  }
                     }
                 } catch (e) {
-                    finish('pos-print-error', 'تعذر بدء الطباعة');
+                    log('Exception caught in print loop: ' + e.message);
+                    finish('pos-print-error', 'تعذر بدء الطباعة: ' + e.message);
                 }
             }, 400);
 
             return; // All paths handled above
         }
+        log('shouldPrint is false. Finalizing pos-print-complete.');
         finish('pos-print-complete');
     });
 
-    window.addEventListener('afterprint', () => { finish('pos-print-complete'); });
+    window.addEventListener('afterprint', () => {
+        log('afterprint event fired');
+        finish('pos-print-complete');
+    });
 })();
 </script>
 </body>

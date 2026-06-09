@@ -13,6 +13,18 @@ let phpPort = 8085; // Default fallback
 let tunnelProcess = null;
 let activeTunnelToken = '';
 
+// Helper to write to desktop_print.log
+function logPrintMessage(message) {
+    const rootPath = path.join(__dirname, '..');
+    const logDir = path.join(rootPath, 'storage', 'logs');
+    if (!fs.existsSync(logDir)) {
+        fs.mkdirSync(logDir, { recursive: true });
+    }
+    const logFile = path.join(logDir, 'desktop_print.log');
+    const timestamp = new Date().toISOString();
+    fs.appendFileSync(logFile, `[${timestamp}] ${message}\n`);
+}
+
 // Helper function to force kill whatever is listening on a port
 function killPort(port, cb) {
     console.log(`Ensuring port ${port} is free...`);
@@ -722,6 +734,8 @@ app.on('quit', () => {
 
 // IPC Handler to trigger native silent printing
 ipcMain.on('print-silent', (event, printerName, isLabel = false) => {
+    logPrintMessage(`[MAIN] print-silent event triggered. Printer: "${printerName || 'default'}", isLabel: ${isLabel}`);
+    
     // Set page size dynamically: 50x30mm for barcode labels, 80x300mm for receipts
     const labelPageSize  = { width: 50000,  height: 30000  }; // 50mm × 30mm in microns
     const receiptPageSize = { width: 80000,  height: 300000 }; // 80mm × 300mm in microns
@@ -737,13 +751,14 @@ ipcMain.on('print-silent', (event, printerName, isLabel = false) => {
     if (printerName) {
         printOptions.deviceName = printerName;
     }
+    
     // Print the webContents of the window that triggered the request
     event.sender.print(printOptions, (success, errorType) => {
         if (!event.sender.isDestroyed()) {
             event.sender.send('print-finished', { success, error: errorType });
         }
         if (!success) {
-            console.error('Silent print failed:', errorType);
+            logPrintMessage(`[MAIN ERROR] Silent print failed. Error: "${errorType}", Printer: "${printerName || 'default'}", isLabel: ${isLabel}`);
             if (mainWindow) {
                 mainWindow.webContents.send('print-status', {
                     success: false,
@@ -752,7 +767,7 @@ ipcMain.on('print-silent', (event, printerName, isLabel = false) => {
                 });
             }
         } else {
-            console.log('Silent print succeeded!');
+            logPrintMessage(`[MAIN SUCCESS] Silent print succeeded. Printer: "${printerName || 'default'}"`);
             if (mainWindow) {
                 mainWindow.webContents.send('print-status', {
                     success: true,
@@ -765,6 +780,8 @@ ipcMain.on('print-silent', (event, printerName, isLabel = false) => {
 
 // New IPC Handler to handle rock-solid direct URL silent printing
 ipcMain.on('print-direct-url', (event, url) => {
+    logPrintMessage(`[MAIN] print-direct-url event triggered for URL: ${url}`);
+    
     const workerWindow = new BrowserWindow({
         show: false, // Completely hidden in the background
         webPreferences: {
@@ -777,10 +794,19 @@ ipcMain.on('print-direct-url', (event, url) => {
     // Load the print route (e.g., /sales/{id}/print?autoprint=1)
     workerWindow.loadURL(url);
     
+    workerWindow.webContents.on('did-fail-load', (errEvent, errorCode, errorDescription, validatedURL) => {
+        logPrintMessage(`[MAIN ERROR] Worker window failed to load URL: "${validatedURL}". Error code: ${errorCode}, Description: "${errorDescription}"`);
+    });
+    
     // Prevent memory leaks by destroying the window when it self-closes
     workerWindow.on('closed', () => {
-        console.log(`Direct print worker successfully cleaned up for URL: ${url}`);
+        logPrintMessage(`[MAIN] Worker window closed for URL: ${url}`);
     });
+});
+
+// IPC Handler to bridge renderer logs to the main process print log
+ipcMain.on('log-print', (event, message) => {
+    logPrintMessage(`[RENDERER] ${message}`);
 });
 
 // IPC Handler to quit app
