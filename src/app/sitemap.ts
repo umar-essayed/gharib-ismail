@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next';
 import { supabase } from '@/lib/supabase';
-
 import { slugify } from '@/lib/utils';
+import { mockBlogPosts } from '@/lib/blogData';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://www.nassryaa-gomla.markets';
@@ -32,6 +32,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     },
   ];
+
+  // Include mock blog posts in sitemap for SEO discovery
+  const blogRoutes = mockBlogPosts.map((post) => ({
+    url: `${baseUrl}/blog/${post.slug}`,
+    lastModified: new Date(post.created_at),
+    changeFrequency: 'weekly' as const,
+    priority: 0.8,
+  }));
 
   try {
     const allProducts: any[] = [];
@@ -72,11 +80,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         changeFrequency: 'weekly' as const,
         priority: 0.7,
       }));
-      return [...routes, ...productRoutes];
+      return [...routes, ...blogRoutes, ...productRoutes];
     }
   } catch (e) {
     console.error('Sitemap dynamic products load failed:', e);
   }
 
-  return routes;
+  return [...routes, ...blogRoutes];
 }

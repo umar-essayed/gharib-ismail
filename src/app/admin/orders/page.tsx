@@ -86,6 +86,7 @@ function AdminOrdersContent() {
   const [prodIsAvailable, setProdIsAvailable] = useState(true);
   const [modalError, setModalError] = useState<string | null>(null);
   const [saveLoading, setSaveLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Category Form Modal States
   const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -353,6 +354,47 @@ function AdminOrdersContent() {
     setShowProductModal(true);
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingImage(true);
+      setModalError(null);
+
+      // Generate a unique file name
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+      const filePath = `products/${fileName}`;
+
+      // Upload to supabase storage bucket
+      const { data, error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+
+      setProdImageUrl(publicUrl);
+      addLog(`📸 تم رفع صورة بنجاح: ${fileName}`);
+    } catch (err: any) {
+      console.error('Error uploading image:', err);
+      setModalError(`فشل رفع الصورة: ${err.message || err}`);
+      addLog(`❌ فشل رفع الصورة: ${err.message || err}`);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!prodName.trim()) {
@@ -544,6 +586,85 @@ function AdminOrdersContent() {
   const statsRevenue = orders.reduce((acc, o) => acc + Number(o.total_price), 0);
   const statsLowStock = products.filter(p => p.stock <= 5).length;
   const statsCompleted = orders.filter(o => o.status === 'completed').length;
+
+  // Rich Analytics Computations
+  const statsProductSales = React.useMemo(() => {
+    const counts: Record<string, { name: string; qty: number; total: number }> = {};
+    orders.forEach(order => {
+      const items = Array.isArray(order.items) ? order.items : [];
+      items.forEach((item: any) => {
+        if (item.product_id) {
+          const name = item.name || 'منتج غير معروف';
+          const qty = Number(item.qty || 1);
+          const price = Number(item.price || 0);
+          if (!counts[item.product_id]) {
+            counts[item.product_id] = { name, qty: 0, total: 0 };
+          }
+          counts[item.product_id].qty += qty;
+          counts[item.product_id].total += (qty * price);
+        }
+      });
+    });
+    return Object.values(counts).sort((a, b) => b.qty - a.qty).slice(0, 5);
+  }, [orders]);
+
+  const statsRegionSales = React.useMemo(() => {
+    const regions = [
+      { name: 'الناصرية القديمة', keywords: ['ناصرية قديمة', 'الناصرية القديمة', 'الناصريه القديمه', 'ناصريه قديمه'] },
+      { name: 'العامرية أول', keywords: ['عامرية اول', 'العامرية أول', 'العامريّه اول', 'العامريه اول', 'العامرية ١', 'العامرية 1'] },
+      { name: 'العامرية ثان', keywords: ['عامرية ثان', 'العامرية ثان', 'العامريه ثان', 'العامرية ٢', 'العامرية 2'] },
+      { name: 'زاوية عبد القادر', keywords: ['عبد القادر', 'عبدالقادر', 'الزاوية', 'الزاويه'] },
+      { name: 'مرغم ومناطق صناعية', keywords: ['مرغم', 'المنطقة الصناعية', 'المصانع'] },
+      { name: 'الناصرية الجديدة', keywords: ['الناصرية الجديدة', 'الناصريه الجديده', 'ناصريه جديده', 'ناصرية جديدة'] }
+    ];
+
+    const regionSummary: Record<string, { count: number; total: number }> = {};
+    regions.forEach(r => {
+      regionSummary[r.name] = { count: 0, total: 0 };
+    });
+    regionSummary['مناطق أخرى'] = { count: 0, total: 0 };
+
+    orders.forEach(order => {
+      const addr = (order.delivery_address || '').toLowerCase();
+      const val = Number(order.total_price || 0);
+      let matched = false;
+
+      for (const r of regions) {
+        if (r.keywords.some(k => addr.includes(k))) {
+          regionSummary[r.name].count += 1;
+          regionSummary[r.name].total += val;
+          matched = true;
+          break;
+        }
+      }
+
+      if (!matched) {
+        regionSummary['مناطق أخرى'].count += 1;
+        regionSummary['مناطق أخرى'].total += val;
+      }
+    });
+
+    return Object.entries(regionSummary)
+      .map(([name, data]) => ({ name, ...data }))
+      .sort((a, b) => b.total - a.total);
+  }, [orders]);
+
+  const statsDailySales = React.useMemo(() => {
+    const daily: Record<string, { count: number; total: number }> = {};
+    orders.forEach(order => {
+      if (!order.created_at) return;
+      const date = order.created_at.split('T')[0];
+      if (!daily[date]) {
+        daily[date] = { count: 0, total: 0 };
+      }
+      daily[date].count += 1;
+      daily[date].total += Number(order.total_price || 0);
+    });
+    return Object.entries(daily)
+      .map(([date, data]) => ({ date, ...data }))
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, 7);
+  }, [orders]);
 
   // Access check screen (Access gate)
   if (!profile || profile.role !== 'admin') {
@@ -1155,7 +1276,7 @@ function AdminOrdersContent() {
 
         {/* Tab 4 Content: Analytics & Stats */}
         {activeTab === 'stats' && (
-          <div className="space-y-8">
+          <div className="space-y-8 animate-in fade-in duration-200">
             {/* KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               
@@ -1193,26 +1314,132 @@ function AdminOrdersContent() {
 
             </div>
 
-            {/* Low stock list details */}
-            <div className="bg-white border border-slate-150 rounded-3xl p-6 shadow-xs max-w-2xl mx-auto space-y-4">
-              <h3 className="text-xs font-black text-slate-900 flex items-center gap-1.5 justify-end">
-                أصناف أوشكت على النفاد (المخزون 5 أو أقل)
-                <AlertTriangle size={15} className="text-red-550" />
-              </h3>
-
-              {products.filter(p => p.stock <= 5).length === 0 ? (
-                <p className="text-[11px] text-slate-500 font-bold text-center py-6">مستويات المخزون لجميع الأصناف آمنة وممتازة 👍</p>
-              ) : (
-                <div className="divide-y divide-slate-100 max-h-60 overflow-y-auto pr-1">
-                  {products.filter(p => p.stock <= 5).map(p => (
-                    <div key={p.id} className="py-2.5 flex justify-between items-center text-xs font-semibold text-slate-650">
-                      <span className="bg-red-50 border border-red-200 text-red-700 px-2 py-0.5 rounded text-[10px] font-bold">المتبقي: {p.stock} قطع</span>
-                      <span className="text-slate-800 font-bold text-right">{p.name}</span>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              {/* Left Side: Top Products & Daily Sales */}
+              <div className="lg:col-span-7 space-y-6">
+                
+                {/* Top Selling Products */}
+                <div className="bg-white border border-slate-150 rounded-3xl p-6 shadow-xs space-y-4">
+                  <h3 className="text-xs font-black text-slate-900 border-b border-slate-100 pb-3 flex justify-between items-center">
+                    <span className="text-[10px] bg-slate-100 text-slate-650 px-2 py-0.5 rounded-md font-bold">الخمسة الأكثر مبيعاً</span>
+                    <span>الأصناف الأكثر مبيعاً في الموقع 🔥</span>
+                  </h3>
+                  {statsProductSales.length === 0 ? (
+                    <p className="text-[11px] text-slate-500 font-bold text-center py-6">لا توجد بيانات مبيعات كافية حتى الآن.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {statsProductSales.map((item, idx) => (
+                        <div key={idx} className="flex justify-between items-center text-xs font-semibold text-slate-700 bg-slate-50 p-3 rounded-2xl border border-slate-100/50">
+                          <div className="text-left">
+                            <span className="text-slate-950 font-black">{item.total.toFixed(2)} ج.م</span>
+                            <span className="text-[9px] text-slate-400 block font-medium">مبيعات إجمالية</span>
+                          </div>
+                          <div className="text-right flex items-center gap-3">
+                            <div>
+                              <span className="text-slate-800 font-bold block">{item.name}</span>
+                              <span className="text-[9px] text-slate-400 block font-medium">الكمية المباعة: {item.qty} قطعة</span>
+                            </div>
+                            <span className="w-5 h-5 bg-primary/10 text-primary text-[10px] font-black rounded-full flex items-center justify-center shrink-0">
+                              {idx + 1}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
-              )}
+
+                {/* Daily Sales Chart Table */}
+                <div className="bg-white border border-slate-150 rounded-3xl p-6 shadow-xs space-y-4">
+                  <h3 className="text-xs font-black text-slate-900 border-b border-slate-100 pb-3">تطور المبيعات اليومية (آخر 7 أيام) 📈</h3>
+                  {statsDailySales.length === 0 ? (
+                    <p className="text-[11px] text-slate-500 font-bold text-center py-6">لا توجد سجلات مبيعات يومية.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-right text-xs">
+                        <thead>
+                          <tr className="text-slate-400 border-b border-slate-100 pb-2">
+                            <th className="pb-2 text-left">إجمالي الإيراد</th>
+                            <th className="pb-2 text-center">عدد الطلبات</th>
+                            <th className="pb-2">التاريخ</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+                          {statsDailySales.map((day, idx) => (
+                            <tr key={idx} className="hover:bg-slate-50/50">
+                              <td className="py-2.5 text-left font-black text-slate-950">{day.total.toFixed(2)} ج.م</td>
+                              <td className="py-2.5 text-center text-primary font-black">{day.count}</td>
+                              <td className="py-2.5 font-bold">{day.date}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+              </div>
+
+              {/* Right Side: Regional Breakdown & Low Stock */}
+              <div className="lg:col-span-5 space-y-6">
+                
+                {/* Regional Breakdown */}
+                <div className="bg-white border border-slate-150 rounded-3xl p-6 shadow-xs space-y-4">
+                  <h3 className="text-xs font-black text-slate-900 border-b border-slate-100 pb-3">مبيعات وتوصيل البقالة حسب المنطقة 📍</h3>
+                  {statsRegionSales.filter(r => r.count > 0).length === 0 ? (
+                    <p className="text-[11px] text-slate-500 font-bold text-center py-6">لا توجد بيانات عناوين توصيل مسجلة للطلبيات.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {statsRegionSales.map((r, idx) => {
+                        const totalSales = statsRevenue || 1;
+                        const pct = Math.round((r.total / totalSales) * 100);
+                        return (
+                          <div key={idx} className="space-y-1.5">
+                            <div className="flex justify-between text-xs font-semibold text-slate-750">
+                              <span className="text-slate-500 font-bold text-left">{r.total.toFixed(2)} ج.م ({r.count} طلب)</span>
+                              <span className="text-slate-900 font-bold">{r.name}</span>
+                            </div>
+                            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden flex flex-row-reverse">
+                              <div 
+                                className={`h-full rounded-full transition-all ${
+                                  idx === 0 ? 'bg-primary' : 
+                                  idx === 1 ? 'bg-blue-500' : 
+                                  idx === 2 ? 'bg-emerald-500' : 'bg-slate-400'
+                                }`} 
+                                style={{ width: `${pct}%` }} 
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Low stock list details */}
+                <div className="bg-white border border-slate-150 rounded-3xl p-6 shadow-xs space-y-4">
+                  <h3 className="text-xs font-black text-slate-900 flex items-center gap-1.5 justify-end border-b border-slate-100 pb-3">
+                    أصناف أوشكت على النفاد (المخزون 5 أو أقل)
+                    <AlertTriangle size={15} className="text-red-550" />
+                  </h3>
+
+                  {products.filter(p => p.stock <= 5).length === 0 ? (
+                    <p className="text-[11px] text-slate-550 font-bold text-center py-6">مستويات المخزون لجميع الأصناف آمنة وممتازة 👍</p>
+                  ) : (
+                    <div className="divide-y divide-slate-100 max-h-60 overflow-y-auto pr-1">
+                      {products.filter(p => p.stock <= 5).map(p => (
+                        <div key={p.id} className="py-2.5 flex justify-between items-center text-xs font-semibold text-slate-650">
+                          <span className="bg-red-50 border border-red-200 text-red-700 px-2 py-0.5 rounded text-[10px] font-bold">المتبقي: {p.stock} قطع</span>
+                          <span className="text-slate-800 font-bold text-right">{p.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+              </div>
             </div>
+
           </div>
         )}
 
@@ -1231,7 +1458,7 @@ function AdminOrdersContent() {
                 </p>
                 <textarea
                   readOnly
-                  rows={4}
+                  rows={6}
                   value={`-- SQL to run in Supabase SQL Editor:
 CREATE TABLE IF NOT EXISTS public.banners (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1249,6 +1476,7 @@ CREATE TABLE IF NOT EXISTS public.coupons (
     min_order_amount NUMERIC(10, 2) DEFAULT 0 NOT NULL,
     points_cost INT DEFAULT 0 NOT NULL,
     is_active BOOLEAN DEFAULT true NOT NULL,
+    usage_count INT DEFAULT 0 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
@@ -1258,7 +1486,15 @@ ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Banners are readable by everyone" ON public.banners FOR SELECT USING (true);
 CREATE POLICY "Admins have full access on banners" ON public.banners FOR ALL USING (public.is_admin(auth.uid()));
 CREATE POLICY "Coupons are readable by everyone" ON public.coupons FOR SELECT USING (true);
-CREATE POLICY "Admins have full access on coupons" ON public.coupons FOR ALL USING (public.is_admin(auth.uid()));`}
+CREATE POLICY "Admins have full access on coupons" ON public.coupons FOR ALL USING (public.is_admin(auth.uid()));
+
+-- Storage Bucket configuration for product image uploading
+INSERT INTO storage.buckets (id, name, public) VALUES ('product-images', 'product-images', true) ON CONFLICT DO NOTHING;
+
+CREATE POLICY "Public Storage Access" ON storage.objects FOR SELECT USING (bucket_id = 'product-images');
+CREATE POLICY "Admin Insert Storage" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'product-images' AND public.is_admin(auth.uid()));
+CREATE POLICY "Admin Update Storage" ON storage.objects FOR UPDATE USING (bucket_id = 'product-images' AND public.is_admin(auth.uid()));
+CREATE POLICY "Admin Delete Storage" ON storage.objects FOR DELETE USING (bucket_id = 'product-images' AND public.is_admin(auth.uid()));`}
                   className="w-full bg-slate-900 text-slate-100 p-3 rounded-xl font-mono text-[10px] focus:outline-none"
                   dir="ltr"
                 />
@@ -1592,13 +1828,32 @@ CREATE POLICY "Admins have full access on coupons" ON public.coupons FOR ALL USI
                 </div>
 
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-700 block">رابط الصورة (URL)</label>
-                  <input
-                    type="text"
-                    value={prodImageUrl}
-                    onChange={(e) => setProdImageUrl(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 focus:outline-none focus:ring-1 focus:ring-primary text-slate-900 text-left"
-                  />
+                  <label className="font-bold text-slate-700 block">صورة المنتج</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={prodImageUrl}
+                      onChange={(e) => setProdImageUrl(e.target.value)}
+                      placeholder="رابط الصورة (URL)"
+                      className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 focus:outline-none focus:ring-1 focus:ring-primary text-slate-900 text-left text-xs"
+                    />
+                    <label className="relative flex items-center justify-center bg-slate-100 hover:bg-slate-250 text-slate-700 px-3 py-2 rounded-xl font-bold cursor-pointer transition-all border border-slate-200 shrink-0 text-xs select-none">
+                      {uploadingImage ? 'جاري الرفع...' : 'رفع صورة 📁'}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        disabled={uploadingImage}
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      />
+                    </label>
+                  </div>
+                  {prodImageUrl && (
+                    <div className="mt-2 flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-100">
+                      <img src={prodImageUrl} alt="معاينة" className="h-10 w-10 object-cover rounded-lg border border-slate-200" />
+                      <span className="text-[9px] text-slate-400 font-bold truncate max-w-xs">{prodImageUrl}</span>
+                    </div>
+                  )}
                 </div>
 
               </div>
