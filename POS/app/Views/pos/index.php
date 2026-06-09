@@ -1129,9 +1129,13 @@
         filterProductsList();
     });
 
+    search.addEventListener('click', () => {
+        search.select();
+    });
+
     search.addEventListener('keydown', async (e) => {
         if (e.key !== 'Enter') return;
-        const rawQuery = String(search.value || '');
+        const rawQuery = String(search.value || '').trim();
         const query = normalizeSearchText(rawQuery);
         const fallbackQuery = normalizeSearchText(normalizeScannedQuery(rawQuery));
         if (query === '') {
@@ -1164,7 +1168,7 @@
                 const product = findProductById(scale.product_id) || rows[0] || null;
                 if (!product) {
                     alert('كود الميزان غير مربوط بأي صنف');
-                    keepSearchReady();
+                    keepSearchReady(true);
                     return;
                 }
 
@@ -1198,9 +1202,13 @@
                 keepSearchReady(true);
                 return;
             }
+
+            // Product not found or multiple matches returned from server
+            alert('الصنف غير موجود أو يوجد أكثر من تطابق');
+            keepSearchReady(true);
         } catch (err) {
             alert((err && err.message) ? err.message : 'تعذر قراءة الباركود');
-            keepSearchReady();
+            keepSearchReady(true);
         }
     });
 
