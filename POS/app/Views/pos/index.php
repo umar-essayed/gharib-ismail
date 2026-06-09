@@ -669,6 +669,57 @@
         await window.qz.print(config, data);
     }
 
+    async function silentPrintWithBrowserPopup(payload){
+        if (!payload || !payload.printUrl) {
+            throw new Error('بيانات الطباعة غير مكتملة');
+        }
+
+        const absolutePrintUrl = new URL(String(payload.printUrl), window.location.origin);
+        absolutePrintUrl.searchParams.set('autoprint', '1');
+        absolutePrintUrl.searchParams.set('self_close', '1');
+
+        let popup = pendingBrowserPrintPopup;
+        pendingBrowserPrintPopup = null;
+
+        if (!popup || popup.closed) {
+            const popupName = `pos-print-${payload.invoiceId || Date.now()}`;
+            const popupFeatures = [
+                'popup=yes',
+                'width=460',
+                'height=760',
+                'left=80',
+                'top=40',
+                'resizable=yes',
+                'scrollbars=yes',
+                'toolbar=no',
+                'location=no',
+                'menubar=no',
+                'status=no'
+            ].join(',');
+            popup = window.open('about:blank', popupName, popupFeatures);
+        }
+        if (!popup) {
+            throw new Error('المتصفح منع نافذة الطباعة. اسمح بالنوافذ المنبثقة للموقع.');
+        }
+
+        popup.location.replace(absolutePrintUrl.href);
+        try { popup.focus(); } catch (e) {}
+
+        await new Promise((resolve) => {
+            const startedAt = Date.now();
+            const timer = window.setInterval(() => {
+                if (popup.closed) {
+                    window.clearInterval(timer);
+                    resolve();
+                    return;
+                }
+                if (Date.now() - startedAt > 180000) {
+                    window.clearInterval(timer);
+                    resolve();
+                }
+            }, 500);
+        });
+    }
 
     function prepareShortcutPayment(){
         const total = cartTotal();
@@ -732,7 +783,6 @@
             printJobIdInput.value = activePrintJobId;
             const useQz = qzAvailable();
             printTransport.value = useQz ? 'qz' : 'popup';
-
             setTimeout(() => {
                 if (shortcutSubmitting && quickAction.value === 'print') {
                     resetShortcutState();
@@ -961,16 +1011,9 @@
             search.value = '';
             filterProductsList();
         }
-        // Use 80ms to allow render() DOM reflow to complete first
         setTimeout(() => {
-            try { search.focus(); search.select(); } catch (e) {}
-        }, 80);
-        // Second safety net attempt
-        setTimeout(() => {
-            if (document.activeElement !== search) {
-                try { search.focus(); } catch (e) {}
-            }
-        }, 200);
+            search.focus();
+        }, 0);
     }
 
     paymentMethod.addEventListener('change', () => {
@@ -1345,7 +1388,7 @@
                 showTemporaryAlert(data.message, 'success');
                 
                 if (isPrintShortcut) {
-                    // Build the exact direct print URL with automatic print and self-close flags
+                    // Construct the exact, clean direct printing link
                     const printUrl = `${window.location.origin}/sales/${data.invoice_id}/print?autoprint=1&self_close=1`;
                     
                     if (qzAvailable()) {
@@ -1362,11 +1405,11 @@
                                 keepSearchReady();
                             });
                     } else if (window.electronAPI && typeof window.electronAPI.printUrl === 'function') {
-                        // THE DIRECT FIX: Pass the URL to the main process to load cleanly just like the invoices page
+                        // THE CRITICAL FIX: Bypass the renderer popup completely and stream the URL directly to the Main Process
                         window.electronAPI.printUrl(printUrl);
                         finalizeSuccessfulPrint();
                     } else {
-                        // Standard browser popup fallback if running outside Electron
+                        // Standard browser printing fallback if outside Electron environment
                         window.open(printUrl, `pos-print-${data.invoice_id}`, 'width=460,height=760');
                         finalizeSuccessfulPrint();
                     }
@@ -1497,18 +1540,11 @@
     }
 
     document.addEventListener('keydown', (e) => {
-        const activeEl = document.activeElement;
-        const activeTag = String(activeEl?.tagName || '').toLowerCase();
-        const isTypingInField = activeTag === 'input'
-            || activeTag === 'textarea'
-            || activeTag === 'select'
-            || activeEl?.isContentEditable;
-
-        // Check user keyboard shortcuts first (only if not typing in any input field)
-        if (!isTypingInField) {
+        // Check user keyboard shortcuts first (only if not typing in search)
+        if (e.target !== search) {
             const keyCode = normalizeKeyCode(e);
             const shortcut = userKeyboardShortcuts[keyCode.toLowerCase()];
-
+            
             if (shortcut && Number(shortcut.is_active) === 1) {
                 e.preventDefault();
                 executeKeyboardShortcut(shortcut);

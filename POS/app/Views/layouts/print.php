@@ -108,12 +108,9 @@
                                     } else {
                                         finish('pos-print-error', 'فشلت الطباعة: ' + data.error);
                                     }
-                                    // Close this popup window after Electron finishes printing.
-                                    // We add a delay of 1500ms so the Windows printer spooler has time to fully process the document resources before the window is destroyed.
+                                    // Close this popup window after Electron finishes printing
                                     if (selfClose || embedded) {
-                                        setTimeout(() => {
-                                            try { window.open('', '_self'); window.close(); } catch (e) {}
-                                        }, 1500);
+                                        try { window.open('', '_self'); window.close(); } catch (e) {}
                                     }
                                 }
                             });

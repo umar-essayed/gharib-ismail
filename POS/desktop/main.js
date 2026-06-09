@@ -722,66 +722,49 @@ app.on('quit', () => {
 
 // IPC Handler to trigger native silent printing
 ipcMain.on('print-silent', (event, printerName, isLabel = false) => {
-    const senderContents = event.sender;
+    // Set page size dynamically: 50x30mm for barcode labels, 80x300mm for receipts
+    const labelPageSize  = { width: 50000,  height: 30000  }; // 50mm × 30mm in microns
+    const receiptPageSize = { width: 80000,  height: 300000 }; // 80mm × 300mm in microns
 
-    const doPrint = () => {
-        if (senderContents.isDestroyed()) return;
-
-        // Label: 50x30mm in microns (exact match to @page { size: 50mm 30mm })
-        // Receipt: Omit 'pageSize' entirely for normal receipts! This forces the printer driver to fallback to its
-        //          default system paper size configured by the user (which perfectly handles A4 printers, 80mm roll 
-        //          thermal printers, and 58mm thermal printers without page configuration rejection errors on Windows/Linux).
-        const printOptions = {
-            silent: true,
-            printBackground: true,
-            margins: { marginType: 'none' }
-        };
-
-        if (isLabel) {
-            printOptions.pageSize = { width: 50000, height: 30000 };
-        }
-
-        if (printerName) {
-            printOptions.deviceName = printerName;
-        }
-
-        senderContents.print(printOptions, (success, errorType) => {
-            if (!senderContents.isDestroyed()) {
-                senderContents.send('print-finished', { success, error: errorType || null });
-            }
-            if (!success) {
-                console.error('Silent print failed:', errorType);
-                if (mainWindow && !mainWindow.isDestroyed()) {
-                    mainWindow.webContents.send('print-status', {
-                        success: false,
-                        error: errorType,
-                        message: 'فشلت عملية الطباعة: ' + errorType
-                    });
-                }
-            } else {
-                console.log('Silent print succeeded!');
-                if (mainWindow && !mainWindow.isDestroyed()) {
-                    mainWindow.webContents.send('print-status', {
-                        success: true,
-                        message: 'تمت عملية الطباعة صامتاً بنجاح ✓'
-                    });
-                }
-            }
-        });
+    const printOptions = {
+        silent: true,
+        printBackground: true,
+        margins: {
+            marginType: 'none' // إلغاء الهوامش تماماً لمنع تصغير الفاتورة لحجم النصف مللي
+        },
+        pageSize: isLabel ? labelPageSize : receiptPageSize
     };
-
-    // If page is still loading, wait for it — otherwise print immediately
-    if (senderContents.isLoading()) {
-        senderContents.once('did-finish-load', () => {
-            setTimeout(doPrint, 300);
-        });
-    } else {
-        doPrint();
+    if (printerName) {
+        printOptions.deviceName = printerName;
     }
+    // Print the webContents of the window that triggered the request
+    event.sender.print(printOptions, (success, errorType) => {
+        if (!event.sender.isDestroyed()) {
+            event.sender.send('print-finished', { success, error: errorType });
+        }
+        if (!success) {
+            console.error('Silent print failed:', errorType);
+            if (mainWindow) {
+                mainWindow.webContents.send('print-status', {
+                    success: false,
+                    error: errorType,
+                    message: 'فشلت عملية الطباعة: ' + errorType
+                });
+            }
+        } else {
+            console.log('Silent print succeeded!');
+            if (mainWindow) {
+                mainWindow.webContents.send('print-status', {
+                    success: true,
+                    message: 'تمت عملية الطباعة صامتاً بنجاح ✓'
+                });
+            }
+        }
+    });
 });
 
-// IPC Handler to open a clean background window for a direct URL print job
-ipcMain.on('print-url', (event, url) => {
+// New IPC Handler to handle rock-solid direct URL silent printing
+ipcMain.on('print-direct-url', (event, url) => {
     const workerWindow = new BrowserWindow({
         show: false, // Completely hidden in the background
         webPreferences: {
@@ -791,12 +774,12 @@ ipcMain.on('print-url', (event, url) => {
         }
     });
     
-    // Load the exact print page URL (this triggers print.php wrapper natively)
+    // Load the print route (e.g., /sales/{id}/print?autoprint=1)
     workerWindow.loadURL(url);
     
-    // Automatically clean up memory when the window finishes and self-closes
+    // Prevent memory leaks by destroying the window when it self-closes
     workerWindow.on('closed', () => {
-        console.log(`Print worker window closed successfully for URL: ${url}`);
+        console.log(`Direct print worker successfully cleaned up for URL: ${url}`);
     });
 });
 
