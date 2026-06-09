@@ -728,20 +728,18 @@ ipcMain.on('print-silent', (event, printerName, isLabel = false) => {
         if (senderContents.isDestroyed()) return;
 
         // Label: 50x30mm in microns (exact match to @page { size: 50mm 30mm })
-        // Receipt: For Windows (win32), use custom 80mm roll width. A4 is rejected by Windows thermal drivers.
-        //          For Linux, use named 'A4' to let CSS @page { size: 80mm auto } override.
-        const isWin = process.platform === 'win32';
+        // Receipt: Omit 'pageSize' entirely for normal receipts! This forces the printer driver to fallback to its
+        //          default system paper size configured by the user (which perfectly handles A4 printers, 80mm roll 
+        //          thermal printers, and 58mm thermal printers without page configuration rejection errors on Windows/Linux).
         const printOptions = {
             silent: true,
             printBackground: true,
-            margins: { marginType: 'none' },
-            pageSize: isLabel
-                ? { width: 50000, height: 30000 }
-                : (isWin 
-                    ? { width: 80000, height: 297000 }
-                    : 'A4'
-                  )
+            margins: { marginType: 'none' }
         };
+
+        if (isLabel) {
+            printOptions.pageSize = { width: 50000, height: 30000 };
+        }
 
         if (printerName) {
             printOptions.deviceName = printerName;
