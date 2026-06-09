@@ -155,6 +155,12 @@ class OnlineOrdersController extends Controller
                     // تجاهل خطأ جلب الاسم
                 }
             }
+            // إذا لم نجد الاسم من البروفايل، نحاول استخلاصه من العنوان لو مكتوب بصيغة "الاسم: XXX | ..."
+            if (!$onlineCustomerName && !empty($order['delivery_address'])) {
+                if (preg_match('/^الاسم:\s*([^|]+)/u', $order['delivery_address'], $matches)) {
+                    $onlineCustomerName = trim($matches[1]);
+                }
+            }
             // إذا لم نجد الاسم، نستخدم رقم الهاتف
             if (!$onlineCustomerName && $deliveryPhone) {
                 $onlineCustomerName = $deliveryPhone;

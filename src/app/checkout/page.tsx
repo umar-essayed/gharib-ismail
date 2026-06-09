@@ -34,7 +34,7 @@ function CheckoutContent() {
 
   // Multi-step Auth State
   const [checkoutStep, setCheckoutStep] = useState<'auth' | 'address'>('auth');
-  const [authTab, setAuthTab] = useState<'login' | 'register'>('login');
+  const [authTab, setAuthTab] = useState<'login' | 'register' | 'guest'>('login');
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
@@ -284,6 +284,21 @@ function CheckoutContent() {
     }
   };
 
+  // Step 1C: Handle guest checkout initiation
+  const handleGuestSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fullName.trim()) {
+      setAuthError('الرجاء إدخال اسم المستلم.');
+      return;
+    }
+    if (!phone.trim()) {
+      setAuthError('الرجاء إدخال رقم الهاتف للتواصل.');
+      return;
+    }
+    setAuthError(null);
+    setCheckoutStep('address');
+  };
+
   // Step 2: Handle Finalizing Order Submission
   const handleOrderSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -292,8 +307,8 @@ function CheckoutContent() {
       return;
     }
 
-    // Function to join the selected region and detailed address
-    const combinedAddress = `${selectedRegion}، ${detailedAddress.trim()}`;
+    // Function to join the selected region and detailed address, including the recipient's name as a prefix
+    const combinedAddress = `الاسم: ${fullName.trim()} | ${selectedRegion}، ${detailedAddress.trim()}`;
 
     try {
       setOrderLoading(true);
@@ -363,7 +378,7 @@ function CheckoutContent() {
         await supabase
           .from('profiles')
           .update({ 
-            address: combinedAddress,
+            address: `${selectedRegion}، ${detailedAddress.trim()}`,
             points: newPoints
           })
           .eq('id', profile.id);
@@ -487,11 +502,11 @@ function CheckoutContent() {
                 </div>
 
                 {/* Tab Switcher */}
-                <div className="flex bg-gray-100 p-1.5 rounded-2xl border border-gray-200/40">
+                <div className="flex bg-gray-100 p-1.5 rounded-2xl border border-gray-200/40 gap-1">
                   <button
                     type="button"
                     onClick={() => { setAuthTab('login'); setAuthError(null); }}
-                    className={`flex-1 py-2.5 rounded-xl font-bold text-xs transition-all duration-300 cursor-pointer ${
+                    className={`flex-1 py-2.5 rounded-xl font-bold text-[11px] sm:text-xs transition-all duration-300 cursor-pointer ${
                       authTab === 'login' 
                         ? 'bg-white text-primary shadow-xs' 
                         : 'text-gray-500 hover:text-gray-800'
@@ -502,17 +517,28 @@ function CheckoutContent() {
                   <button
                     type="button"
                     onClick={() => { setAuthTab('register'); setAuthError(null); }}
-                    className={`flex-1 py-2.5 rounded-xl font-bold text-xs transition-all duration-300 cursor-pointer ${
+                    className={`flex-1 py-2.5 rounded-xl font-bold text-[11px] sm:text-xs transition-all duration-300 cursor-pointer ${
                       authTab === 'register' 
                         ? 'bg-white text-primary shadow-xs' 
                         : 'text-gray-500 hover:text-gray-800'
                     }`}
                   >
-                    إنشاء حساب جديد
+                    إنشاء حساب
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setAuthTab('guest'); setAuthError(null); }}
+                    className={`flex-1 py-2.5 rounded-xl font-bold text-[11px] sm:text-xs transition-all duration-300 cursor-pointer ${
+                      authTab === 'guest' 
+                        ? 'bg-white text-primary shadow-xs' 
+                        : 'text-gray-500 hover:text-gray-800'
+                    }`}
+                  >
+                    الشراء كزائر
                   </button>
                 </div>
 
-                {authTab === 'login' ? (
+                {authTab === 'login' && (
                   <form onSubmit={handleLoginSubmit} className="space-y-4 text-right">
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-gray-700 flex items-center gap-1.5 justify-end">
@@ -541,10 +567,10 @@ function CheckoutContent() {
                         placeholder="أدخل كلمة المرور الخاصة بك"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full bg-gray-50 border border-gray-250 rounded-xl px-4 py-2.5 text-xs text-left focus:outline-none focus:ring-1 focus:ring-primary focus:bg-white text-gray-900 transition-all"
+                        className="w-full bg-gray-55 border border-gray-250 rounded-xl px-4 py-2.5 text-xs text-left focus:outline-none focus:ring-1 focus:ring-primary focus:bg-white text-gray-900 transition-all"
                         dir="ltr"
                       />
-                      <p className="text-[10px] text-gray-400 mt-1">
+                      <p className="text-[10px] text-gray-400 mt-1 font-semibold">
                         تلميح: إذا تم إنشاء حسابك تلقائياً عند طلبك السابق، كلمة المرور هي رقم هاتفك نفسه.
                       </p>
                     </div>
@@ -557,7 +583,9 @@ function CheckoutContent() {
                       {authLoading ? <Loader2 size={14} className="animate-spin" /> : 'تسجيل الدخول والمتابعة'}
                     </button>
                   </form>
-                ) : (
+                )}
+
+                {authTab === 'register' && (
                   <form onSubmit={handleRegisterSubmit} className="space-y-4 text-right">
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-gray-700 flex items-center gap-1.5 justify-end">
@@ -570,7 +598,7 @@ function CheckoutContent() {
                         placeholder="اكتب اسمك الثلاثي للتسليم الفوري"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        className="w-full bg-gray-50 border border-gray-250 rounded-xl px-4 py-2.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-primary focus:bg-white text-gray-900 transition-all"
+                        className="w-full bg-gray-55 border border-gray-250 rounded-xl px-4 py-2.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-primary focus:bg-white text-gray-900 transition-all"
                       />
                     </div>
 
@@ -615,6 +643,48 @@ function CheckoutContent() {
                     </button>
                   </form>
                 )}
+
+                {authTab === 'guest' && (
+                  <form onSubmit={handleGuestSubmit} className="space-y-4 text-right">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-gray-700 flex items-center gap-1.5 justify-end">
+                        الاسم بالكامل *
+                        <User size={14} className="text-primary" />
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="اكتب الاسم بالكامل للتسليم الفوري"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        className="w-full bg-gray-55 border border-gray-250 rounded-xl px-4 py-2.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-primary focus:bg-white text-gray-900 transition-all"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-gray-700 flex items-center gap-1.5 justify-end">
+                        رقم الهاتف للتواصل *
+                        <Phone size={14} className="text-primary" />
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        placeholder="أدخل رقم الموبايل الخاص بك"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className="w-full bg-gray-55 border border-gray-250 rounded-xl px-4 py-2.5 text-xs text-left focus:outline-none focus:ring-1 focus:ring-primary focus:bg-white text-gray-900 transition-all"
+                        dir="ltr"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full py-3 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md hover:shadow-lg font-sans"
+                    >
+                      المتابعة كزائر لإدخال العنوان 🚚
+                    </button>
+                  </form>
+                )}
               </div>
             )}
 
@@ -630,9 +700,36 @@ function CheckoutContent() {
 
                 <form onSubmit={handleOrderSubmit} className="space-y-5 text-right">
                   {/* Prefilled Profile display */}
-                  <div className="bg-gray-50 p-4 rounded-2xl border border-gray-150 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-gray-600 font-bold leading-relaxed">
-                    <p>المستلم: <span className="text-gray-900">{fullName}</span></p>
-                    <p>الهاتف: <span className="text-gray-900" dir="ltr">{phone}</span></p>
+                  <div className="bg-gray-50 p-4 rounded-2xl border border-gray-150 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5 text-right">
+                      <label className="text-xs font-bold text-gray-700 flex items-center gap-1.5 justify-end font-sans">
+                        اسم المستلم *
+                        <User size={14} className="text-primary" />
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="اسم المستلم"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        className="w-full bg-white border border-gray-250 rounded-xl px-4 py-2.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-primary text-gray-900 transition-all font-bold font-sans"
+                      />
+                    </div>
+                    <div className="space-y-1.5 text-right">
+                      <label className="text-xs font-bold text-gray-700 flex items-center gap-1.5 justify-end font-sans">
+                        رقم هاتف المستلم *
+                        <Phone size={14} className="text-primary" />
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        placeholder="رقم هاتف المستلم"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className="w-full bg-white border border-gray-250 rounded-xl px-4 py-2.5 text-xs text-left focus:outline-none focus:ring-1 focus:ring-primary text-gray-900 transition-all font-bold font-sans"
+                        dir="ltr"
+                      />
+                    </div>
                   </div>
 
                   {/* Shipping Address */}
