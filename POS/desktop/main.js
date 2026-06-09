@@ -781,18 +781,29 @@ ipcMain.on('print-silent', (event, printerName, isLabel = false) => {
                 return;
             }
 
+            // Emulate print media type so page renders using printer CSS (white background, no dashed border/margins)
+            webContents.emulateMediaType('print');
+
             const win = BrowserWindow.fromWebContents(webContents);
             if (win) {
                 webContents.executeJavaScript(`
                     ({
                         width: document.documentElement.scrollWidth || document.body.scrollWidth,
-                        height: document.documentElement.scrollHeight || document.body.scrollHeight
+                        height: document.documentElement.scrollHeight || document.body.scrollHeight,
+                        labelCount: document.querySelectorAll('.label-card').length
                     })
                 `).then((dimensions) => {
-                    const width = isLabel ? 190 : 300; // 50mm label ~190px, 80mm receipt ~300px
-                    const height = dimensions.height || 600;
+                    let width, height;
+                    if (isLabel) {
+                        const labelCount = dimensions.labelCount || 1;
+                        width = 189; // 50mm label width at 96 DPI
+                        height = Math.round(113.4 * labelCount); // 30mm label height per label at 96 DPI
+                    } else {
+                        width = 300; // 80mm receipt width at 96 DPI
+                        height = dimensions.height || 600;
+                    }
 
-                    logPrintMessage(`Resizing window to ${width}x${height} for screenshot`);
+                    logPrintMessage(`Resizing print window to exact physical bounds: ${width}x${height} (labels: ${dimensions.labelCount || 0})`);
                     if (!win.isDestroyed()) {
                         win.setContentSize(width, height);
                     }
