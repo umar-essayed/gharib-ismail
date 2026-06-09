@@ -741,6 +741,13 @@ ipcMain.on('print-silent', (event, printerName, isLabel = false) => {
         return;
     }
 
+    // Emulate print media type before measuring so scrollHeight is measured under print CSS rules
+    if (typeof webContents.emulateMediaType === 'function') {
+        webContents.emulateMediaType('print');
+    } else if (typeof webContents.setEmulateMedia === 'function') {
+        webContents.setEmulateMedia('print');
+    }
+
     // Measure actual document height to prevent cutoff on long receipts
     const measurePromise = isLabel 
         ? Promise.resolve({ height: 113 }) 
@@ -755,19 +762,20 @@ ipcMain.on('print-silent', (event, printerName, isLabel = false) => {
 
     measurePromise.then((dimensions) => {
         const docHeight = dimensions.height || 600;
-        // Convert pixels to microns (1px ≈ 264.58 microns). Add 50000 microns (5cm) padding to prevent any edge cutoff
-        const calculatedHeight = isLabel ? 30000 : Math.max(300000, Math.round(docHeight * 265) + 50000);
+        // Convert pixels to microns (1px ≈ 264.58 microns). Add 60000 microns (6cm) padding to prevent any edge cutoff
+        const calculatedHeight = isLabel ? 30000 : Math.max(300000, Math.round(docHeight * 265) + 60000);
         
         logPrintMessage(`[MAIN] Measured document height: ${docHeight}px. Setting page height to ${calculatedHeight} microns.`);
 
-        // Set page size: 50x30mm for barcode labels, 80x5000000 microns for receipts (infinite roll)
+        // Set page size dynamically: 50x30mm for barcode labels, 80x[calculated]mm for receipts
+        const labelPageSize  = { width: 50000,  height: 30000  }; // 50mm × 30mm in microns
+        const receiptPageSize = { width: 80000,  height: calculatedHeight }; // 80mm × dynamic height in microns
+
         const printOptions = {
             silent: true,
             printBackground: true,
             margins: { marginType: 'none' },
-            pageSize: isLabel
-                ? { width: 50000, height: 30000 }          // 50×30mm label
-                : { width: 80000, height: 5000000 }         // 80mm wide × 5 Meters (Infinite Roll Dynamic Cut)
+            pageSize: isLabel ? labelPageSize : receiptPageSize
         };
         if (printerName) {
             printOptions.deviceName = printerName;
