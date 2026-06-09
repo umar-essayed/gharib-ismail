@@ -760,17 +760,14 @@ ipcMain.on('print-silent', (event, printerName, isLabel = false) => {
         
         logPrintMessage(`[MAIN] Measured document height: ${docHeight}px. Setting page height to ${calculatedHeight} microns.`);
 
-        // Set page size dynamically: 50x30mm for barcode labels, 80x[calculated]mm for receipts
-        const labelPageSize  = { width: 50000,  height: 30000  }; // 50mm × 30mm in microns
-        const receiptPageSize = { width: 80000,  height: calculatedHeight }; // 80mm × dynamic height in microns
-
+        // Set page size: 50x30mm for barcode labels, 80x5000000 microns for receipts (infinite roll)
         const printOptions = {
             silent: true,
             printBackground: true,
-            margins: {
-                marginType: 'none' // إلغاء الهوامش تماماً لمنع تصغير الفاتورة لحجم النصف مللي
-            },
-            pageSize: isLabel ? labelPageSize : receiptPageSize
+            margins: { marginType: 'none' },
+            pageSize: isLabel
+                ? { width: 50000, height: 30000 }          // 50×30mm label
+                : { width: 80000, height: 5000000 }         // 80mm wide × 5 Meters (Infinite Roll Dynamic Cut)
         };
         if (printerName) {
             printOptions.deviceName = printerName;

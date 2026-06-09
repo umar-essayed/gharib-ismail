@@ -127,6 +127,37 @@ class OnlineOrdersController extends Controller
                 ];
             }
 
+            // Calculate items subtotal to find if there is a shipping fee difference
+            $itemsSubtotal = 0;
+            foreach ((array) $items as $item) {
+                $itemsSubtotal += (float) ($item['price'] ?? 0) * (float) ($item['qty'] ?? 1);
+            }
+
+            // Extract shipping fee: check order keys first, then fallback to difference
+            $shippingFee = 0.0;
+            if (isset($order['shipping_fee'])) {
+                $shippingFee = (float) $order['shipping_fee'];
+            } elseif (isset($order['delivery_fee'])) {
+                $shippingFee = (float) $order['delivery_fee'];
+            } elseif (isset($order['delivery_charge'])) {
+                $shippingFee = (float) $order['delivery_charge'];
+            } else {
+                $shippingFee = (float) ($order['total_price'] ?? 0) - $itemsSubtotal;
+            }
+
+            if ($shippingFee > 0.01) {
+                // Ensure virtual product 999999 exists for shipping fee in local DB
+                $db->exec("INSERT OR IGNORE INTO products (id, name, purchase_price, sale_price, min_stock, opening_stock, sell_type, package_type, track_stock, is_active)
+                           VALUES (999999, 'مصاريف الشحن والتوصيل', 0, 0, 0, 0, 'piece', 'piece', 0, 1)");
+
+                $localItems[] = [
+                    'product_id'  => 999999,
+                    'qty'         => 1.0,
+                    'unit_price'  => round($shippingFee, 2),
+                    'sale_unit'   => 'piece',
+                ];
+            }
+
             // 4. إنشاء الفاتورة المحلية
             $warehouseId     = (int) SettingsService::get('default_warehouse_id', '1');
             $cashCustomerId  = (int) SettingsService::get('default_customer_id', '1');

@@ -860,6 +860,65 @@
         return 0;
     }
 
+    function injectOnlineOrderIntoCart(orderData) {
+        if (!orderData) return;
+
+        // Clear current cart first
+        cart = [];
+
+        // Load items from orderData
+        const items = orderData.items || [];
+        items.forEach(item => {
+            // Find product by id
+            let localProduct = findProductById(item.product_id);
+            if (!localProduct) {
+                // Look up in productsIndex by name
+                localProduct = Object.values(productsIndex).find(p => p.name === item.name);
+            }
+            
+            if (!localProduct) {
+                // Create a fallback virtual product if not found
+                localProduct = {
+                    id: item.product_id,
+                    name: item.name,
+                    price: parseFloat(item.price || 0),
+                    sell_type: "piece",
+                    package_type: "piece"
+                };
+            }
+            addItem(localProduct, {
+                qty: parseFloat(item.qty || 1),
+                unit_price: parseFloat(item.price)
+            });
+        });
+
+        // Extract shipping fee from the online order payload
+        const shippingFee = parseFloat(orderData.shipping_fee || orderData.delivery_fee || orderData.delivery_charge || 0);
+
+        if (shippingFee > 0) {
+            // Inject shipping as a virtual product item directly into the cart
+            cart.push({
+                product_id: 999999, // Virtual ID for shipping
+                name: "مصاريف الشحن والتوصيل",
+                qty: 1,
+                sale_unit: "piece",
+                unit_price: shippingFee,
+                is_scale_item: 0,
+                scanned_barcode: null,
+                product_meta: {
+                    id: 999999,
+                    name: "مصاريف الشحن والتوصيل",
+                    price: shippingFee,
+                    sell_type: "piece",
+                    package_type: "piece"
+                }
+            });
+        }
+
+        // Now render and update totals normally
+        render();
+    }
+
     function focusQtyInput(index){
         if (index < 0) return;
         setTimeout(() => {
@@ -1323,6 +1382,15 @@
         }
 
         const payload = event.data || {};
+        
+        // Intercept incoming online order injection message
+        if (payload.type === 'pos-inject-online-order') {
+            if (payload.orderData) {
+                injectOnlineOrderIntoCart(payload.orderData);
+            }
+            return;
+        }
+
         const payloadJobId = typeof payload.jobId === 'string' ? payload.jobId : '';
         const isPrintType = payload.type && (
             payload.type.startsWith('pos-print-')
