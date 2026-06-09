@@ -1569,11 +1569,18 @@
     }
 
     document.addEventListener('keydown', (e) => {
-        // Check user keyboard shortcuts first (only if not typing in search)
-        if (e.target !== search) {
+        const activeEl = document.activeElement;
+        const activeTag = String(activeEl?.tagName || '').toLowerCase();
+        const isTypingInField = activeTag === 'input'
+            || activeTag === 'textarea'
+            || activeTag === 'select'
+            || activeEl?.isContentEditable;
+
+        // Check user keyboard shortcuts first (only if not typing in any input field)
+        if (!isTypingInField) {
             const keyCode = normalizeKeyCode(e);
             const shortcut = userKeyboardShortcuts[keyCode.toLowerCase()];
-            
+
             if (shortcut && Number(shortcut.is_active) === 1) {
                 e.preventDefault();
                 executeKeyboardShortcut(shortcut);
