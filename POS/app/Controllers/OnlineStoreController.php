@@ -432,7 +432,15 @@ class OnlineStoreController extends Controller
         $shippingFee = (float)SettingsService::get('ecom_shipping_fee', '50');
         $freeShippingThreshold = (float)SettingsService::get('ecom_free_shipping_threshold', '800');
 
-        $this->view('online-store/shipping', compact('shippingFee', 'freeShippingThreshold'));
+        $zones = [];
+        try {
+            $zones = SupabaseSyncService::sendRequest('/shipping_zones?order=name.asc') ?: [];
+        } catch (\Throwable $e) {
+            // fallback if Supabase is offline or table is not created yet
+            $zones = [];
+        }
+
+        $this->view('online-store/shipping', compact('shippingFee', 'freeShippingThreshold', 'zones'));
     }
 
     public function updateShippingSettings(): void
@@ -456,6 +464,64 @@ class OnlineStoreController extends Controller
             flash_success('تم تحديث إعدادات شحن المتجر بنجاح ومزامنتها مع واجهة العملاء');
         } catch (\Throwable $e) {
             flash_error('فشل تحديث إعدادات الشحن: ' . $e->getMessage());
+        }
+
+        $this->redirect('/online-store/shipping');
+    }
+
+    public function addShippingZone(): void
+    {
+        validate_csrf_or_abort();
+        $name = trim((string)input('name'));
+        $price = (float)input('price', 0);
+
+        if ($name === '') {
+            flash_error('يجب كتابة اسم المنطقة');
+            $this->redirect('/online-store/shipping');
+        }
+
+        try {
+            // Check if the zone already exists in Supabase
+            $existing = SupabaseSyncService::sendRequest('/shipping_zones?name=eq.' . rawurlencode($name)) ?: [];
+            if (!empty($existing)) {
+                // Update existing zone price
+                $id = $existing[0]['id'];
+                SupabaseSyncService::sendRequest("/shipping_zones?id=eq.{$id}", 'PATCH', [
+                    'price' => $price,
+                    'is_active' => true
+                ]);
+                flash_success('تم تحديث سعر الشحن للمنطقة بنجاح');
+            } else {
+                // Insert new zone
+                SupabaseSyncService::sendRequest('/shipping_zones', 'POST', [
+                    'name' => $name,
+                    'price' => $price,
+                    'is_active' => true
+                ]);
+                flash_success('تم إضافة منطقة الشحن بنجاح');
+            }
+        } catch (\Throwable $e) {
+            flash_error('فشل حفظ منطقة الشحن: ' . $e->getMessage());
+        }
+
+        $this->redirect('/online-store/shipping');
+    }
+
+    public function deleteShippingZone(): void
+    {
+        validate_csrf_or_abort();
+        $id = trim((string)input('id'));
+
+        if ($id === '') {
+            flash_error('معرف المنطقة غير صحيح');
+            $this->redirect('/online-store/shipping');
+        }
+
+        try {
+            SupabaseSyncService::sendRequest("/shipping_zones?id=eq.{$id}", 'DELETE');
+            flash_success('تم حذف منطقة الشحن بنجاح');
+        } catch (\Throwable $e) {
+            flash_error('فشل حذف منطقة الشحن: ' . $e->getMessage());
         }
 
         $this->redirect('/online-store/shipping');

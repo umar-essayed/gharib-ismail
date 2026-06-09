@@ -43,6 +43,12 @@ function CheckoutContent() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('الناصرية القديمة');
+  const [shippingZones, setShippingZones] = useState<{ name: string; price: number }[]>([
+    { name: 'الناصرية القديمة', price: 20 },
+    { name: 'الناصرية الجديدة', price: 25 },
+    { name: 'العامرية أول', price: 35 },
+    { name: 'الكنج مريوط', price: 50 },
+  ]);
   const [detailedAddress, setDetailedAddress] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('COD');
   
@@ -98,6 +104,28 @@ function CheckoutContent() {
     fetchCoupons();
   }, []);
 
+  useEffect(() => {
+    async function fetchShippingZones() {
+      try {
+        const { data, error } = await supabase
+          .from('shipping_zones')
+          .select('name, price')
+          .eq('is_active', true);
+        if (data && data.length > 0) {
+          setShippingZones(data.map(z => ({ name: z.name, price: Number(z.price) })));
+          
+          // Autofill the first zone name as default if it exists
+          if (data[0] && data[0].name) {
+            setSelectedRegion(data[0].name);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to fetch shipping zones, using fallback:', err);
+      }
+    }
+    fetchShippingZones();
+  }, []);
+
   const calculateDiscount = (couponCode: string | null) => {
     if (!couponCode) return 0;
     const coupon = coupons.find(c => c.code === couponCode);
@@ -115,8 +143,10 @@ function CheckoutContent() {
   };
 
   const activeDiscount = calculateDiscount(selectedCoupon);
+  const activeZone = shippingZones.find(z => z.name === selectedRegion);
+  const zonePrice = activeZone ? activeZone.price : shippingFee;
   const isFreeShipping = subtotal >= threshold;
-  const activeShippingFee = isFreeShipping ? 0 : shippingFee;
+  const activeShippingFee = isFreeShipping ? 0 : zonePrice;
   const finalTotal = Math.max(0, subtotal - activeDiscount + activeShippingFee);
 
   // 1. Prefill details if profile exists
@@ -126,8 +156,8 @@ function CheckoutContent() {
       setPhone(profile.phone || '');
       
       const savedAddress = profile.address || '';
-      const regionsList = ['الناصرية القديمة', 'العامرية أول', 'الناصرية الجديدة'];
-      let matchedRegion = 'الناصرية القديمة';
+      const regionsList = shippingZones.map(z => z.name);
+      let matchedRegion = shippingZones.length > 0 ? shippingZones[0].name : 'الناصرية القديمة';
       let details = savedAddress;
 
       for (const r of regionsList) {
@@ -742,11 +772,13 @@ function CheckoutContent() {
                       <select
                         value={selectedRegion}
                         onChange={(e) => setSelectedRegion(e.target.value)}
-                        className="w-full bg-gray-50 border border-gray-250 rounded-xl px-4 py-2.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-primary focus:bg-white text-gray-900 transition-all font-bold cursor-pointer font-sans"
+                        className="w-full bg-gray-55 border border-gray-250 rounded-xl px-4 py-2.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-primary focus:bg-white text-gray-900 transition-all font-bold cursor-pointer font-sans"
                       >
-                        <option value="الناصرية القديمة">الناصرية القديمة (الشحن الافتراضي)</option>
-                        <option value="العامرية أول">العامرية أول</option>
-                        <option value="الناصرية الجديدة">الناصرية الجديدة</option>
+                        {shippingZones.map((zone) => (
+                          <option key={zone.name} value={zone.name}>
+                            {zone.name} ({isFreeShipping ? 'توصيل مجاني 🚚' : `${zone.price.toFixed(2)} ج.م`})
+                          </option>
+                        ))}
                       </select>
                     </div>
 

@@ -121,6 +121,8 @@ $router->post('/online-store/coupons/delete', [OnlineStoreController::class, 'de
 
 $router->get('/online-store/shipping', [OnlineStoreController::class, 'storeShipping'], ['auth', 'permission:settings.manage']);
 $router->post('/online-store/shipping/update', [OnlineStoreController::class, 'updateShippingSettings'], ['auth', 'permission:settings.manage']);
+$router->post('/online-store/shipping/zones/add', [OnlineStoreController::class, 'addShippingZone'], ['auth', 'permission:settings.manage']);
+$router->post('/online-store/shipping/zones/delete', [OnlineStoreController::class, 'deleteShippingZone'], ['auth', 'permission:settings.manage']);
 
 $router->get('/online-store/analytics', [OnlineStoreController::class, 'analytics'], ['auth', 'permission:reports.view']);
 $router->get('/api/online-store/analytics', [OnlineStoreController::class, 'apiAnalytics'], ['auth', 'permission:reports.view']);
