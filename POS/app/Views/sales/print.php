@@ -45,7 +45,7 @@ if ($isRetailInvoice) {
     }
 
     .receipt {
-        width: 76mm; /* تكبير المساحة المستغلة لضمان عدم التفاف الكلمات */
+        width: 72mm; /* adjusted to fit standard 80mm rolls perfectly */
         margin: 0 auto;
         padding: 4mm 2mm;
         box-sizing: border-box;
