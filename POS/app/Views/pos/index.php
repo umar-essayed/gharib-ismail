@@ -1207,6 +1207,7 @@
     });
 
     let isFetchingProduct = false;
+
     search.addEventListener('keydown', async (e) => {
         // Arrow key navigation through search results
         if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
@@ -1227,13 +1228,17 @@
             const targetItem = items[nextIndex];
             targetItem.classList.add('highlighted');
             
-            // Automatically scroll the container to keep highlighted item in view
             targetItem.scrollIntoView({ block: 'nearest' });
             return;
         }
 
         if (e.key !== 'Enter') return;
-        if (isFetchingProduct) { e.preventDefault(); return; } // Prevent Enter spam
+
+        // CRITICAL LOCK CHECK: Prevent Enter spamming
+        if (isFetchingProduct) {
+            e.preventDefault();
+            return;
+        }
 
         // Check if there is a highlighted item first
         const highlightedItem = productsWrap.querySelector('.pos-product-item.highlighted');
@@ -1259,7 +1264,7 @@
 
         e.preventDefault();
         
-        // 1. Try to find exact match by barcode/SKU/internal code locally
+        // 1. Try to find exact match locally
         const found = findProductForScan(query) || (fallbackQuery !== query ? findProductForScan(fallbackQuery) : null);
         if (found) {
             addItem(found);
@@ -1278,7 +1283,6 @@
                 return;
             }
         } else if (visibleItems.length > 1) {
-            // Multiple items in local list -> highlight the first one so they can see and select it
             visibleItems.forEach(item => item.classList.remove('highlighted'));
             visibleItems[0].classList.add('highlighted');
             visibleItems[0].scrollIntoView({ block: 'nearest' });
@@ -1286,7 +1290,7 @@
         }
 
         // 3. Fallback to server-side search
-        isFetchingProduct = true;
+        isFetchingProduct = true; // APPLY STRICT LOCK
         try {
             const payload = await lookupProductWithFallback(rawQuery);
             const rows = Array.isArray(payload.data) ? payload.data : [];
@@ -1295,7 +1299,7 @@
             if (scale && scale.is_scale) {
                 const product = findProductById(scale.product_id) || rows[0] || null;
                 if (!product) {
-                    alert('كود الميزان غير مربوط بأي صنف');
+                    showTemporaryAlert('كود الميزان غير مربوط بأي صنف', 'error');
                     keepSearchReady(true);
                     return;
                 }
@@ -1332,7 +1336,6 @@
             }
 
             if (rows.length > 1) {
-                // If server returns multiple rows, update local catalog
                 rows.forEach((product) => {
                     if (!productsIndex[product.id]) {
                         productsIndex[product.id] = product;
@@ -1347,11 +1350,7 @@
                             normalizeSearchText(product.sku),
                             normalizeSearchText(product.internal_code)
                         ].filter(Boolean).join(' ');
-                        productCards.push({
-                            product,
-                            normalizedName,
-                            searchText,
-                        });
+                        productCards.push({ product, normalizedName, searchText });
                     }
                 });
                 filterProductsList();
@@ -1364,13 +1363,14 @@
             }
 
             // Product not found
-            alert('الصنف غير موجود');
-            keepSearchReady(false); // Do not clear search query on fail so user can fix typos
+            showTemporaryAlert('الصنف غير موجود', 'error');
+            keepSearchReady(false);
         } catch (err) {
-            alert((err && err.message) ? err.message : 'تعذر قراءة الباركود');
-            keepSearchReady(false); // Do not clear search query on fail so user can fix typos
+            showTemporaryAlert((err && err.message) ? err.message : 'تعذر قراءة الباركود', 'error');
+            keepSearchReady(false);
         } finally {
-            isFetchingProduct = false;
+            // GUARANTEED UNLOCK REGARDLESS OF SUCCESS OR ERROR
+            isFetchingProduct = false; 
         }
     });
 
