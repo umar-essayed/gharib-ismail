@@ -321,30 +321,31 @@ function showNativeNotification() {
 function watchNewOrderFlag() {
     const rootPath = path.join(__dirname, '..');
     const logDir = path.join(rootPath, 'storage', 'logs');
-    if (!fs.existsSync(logDir)) {
-        fs.mkdirSync(logDir, { recursive: true });
-    }
+    if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
     const flagFile = path.join(logDir, 'new_order.flag');
-    
-    if (!fs.existsSync(flagFile)) {
-        fs.writeFileSync(flagFile, '');
-    }
+    if (!fs.existsSync(flagFile)) fs.writeFileSync(flagFile, '');
 
     console.log(`Watching flag file for new orders: ${flagFile}`);
-    
     let debounceTimer = null;
-    fs.watch(flagFile, (eventType) => {
-        if (eventType === 'change') {
-            if (debounceTimer) clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                if (mainWindow) {
-                    console.log('Detected new order flag change! Notifying main window...');
-                    mainWindow.webContents.send('new-order-received');
-                    showNativeNotification();
-                }
-            }, 150);
-        }
-    });
+    
+    try {
+        const watcher = fs.watch(flagFile, (eventType) => {
+            if (eventType === 'change') {
+                if (debounceTimer) clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    if (mainWindow) {
+                        mainWindow.webContents.send('new-order-received');
+                        showNativeNotification();
+                    }
+                }, 150);
+            }
+        });
+        watcher.on('error', (err) => {
+            console.error('fs.watch error safely caught (prevented crash):', err);
+        });
+    } catch (err) {
+        console.error('Failed to initialize fs.watch safely:', err);
+    }
 }
 
 // PHP Environment Check and Downloader Implementation

@@ -784,6 +784,12 @@
             return;
         }
 
+        // CRITICAL: Check HTML5 validity before locking the system
+        if (!saleForm.checkValidity()) {
+            saleForm.reportValidity();
+            return; // Stop here, don't lock!
+        }
+
         shortcutSubmitting = true;
         quickAction.value = action;
         if (action === 'print') {
@@ -1200,6 +1206,7 @@
         search.select();
     });
 
+    let isFetchingProduct = false;
     search.addEventListener('keydown', async (e) => {
         // Arrow key navigation through search results
         if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
@@ -1226,6 +1233,7 @@
         }
 
         if (e.key !== 'Enter') return;
+        if (isFetchingProduct) { e.preventDefault(); return; } // Prevent Enter spam
 
         // Check if there is a highlighted item first
         const highlightedItem = productsWrap.querySelector('.pos-product-item.highlighted');
@@ -1278,6 +1286,7 @@
         }
 
         // 3. Fallback to server-side search
+        isFetchingProduct = true;
         try {
             const payload = await lookupProductWithFallback(rawQuery);
             const rows = Array.isArray(payload.data) ? payload.data : [];
@@ -1360,6 +1369,8 @@
         } catch (err) {
             alert((err && err.message) ? err.message : 'تعذر قراءة الباركود');
             keepSearchReady(false); // Do not clear search query on fail so user can fix typos
+        } finally {
+            isFetchingProduct = false;
         }
     });
 
@@ -1469,6 +1480,7 @@
                 display: flex;
                 align-items: center;
                 gap: 8px;
+                pointer-events: none; /* CRITICAL: Prevents blocking clicks on the search box */
             `;
             document.body.appendChild(alertDiv);
         }
@@ -1840,6 +1852,9 @@
 
     // Keep search focused when clicking empty areas
     document.addEventListener('click', (e) => {
+        // Ignore clicks on scrollbars or the raw document body/html to prevent erratic focus jumps
+        if (e.target === document.documentElement || e.target === document.body) return;
+        
         const tag = e.target.tagName.toLowerCase();
         const ignore = ['input', 'select', 'textarea', 'button', 'a'];
         if (!ignore.includes(tag) && !e.target.closest('.pos-product-item') && !e.target.closest('[data-rm]') && !e.target.closest('[data-mrm]')) {

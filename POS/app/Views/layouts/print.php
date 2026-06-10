@@ -35,7 +35,7 @@
             /* Specific Fix for Normal Receipts - moderate left shift to prevent edge cutoff */
             body.is-receipt .print-container {
                 margin: 0 !important;
-                padding: 0 16px 0 0 !important;
+                padding: 0 37px 0 0 !important;
             }
         }
     </style>
