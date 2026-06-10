@@ -765,11 +765,11 @@ ipcMain.on('print-silent', (event, printerName, isLabel = false) => {
         // Convert pixels to microns (1px ≈ 264.58 microns). Add 60000 microns (6cm) padding to prevent any edge cutoff
         const calculatedHeight = isLabel ? 30000 : Math.max(300000, Math.round(docHeight * 265) + 60000);
         
-        logPrintMessage(`[MAIN] Measured document height: ${docHeight}px. Setting page height to ${calculatedHeight} microns.`);
+        logPrintMessage(`[MAIN] Measured document height: ${docHeight}px. Setting page height to 3276000 microns (calculated: ${calculatedHeight} microns).`);
 
-        // Set page size dynamically: 50x30mm for barcode labels, 80x[calculated]mm for receipts
+        // Set page size: 50x30mm for barcode labels, 80x3276mm (3276000 microns) for receipts
         const labelPageSize  = { width: 50000,  height: 30000  }; // 50mm × 30mm in microns
-        const receiptPageSize = { width: 80000,  height: calculatedHeight }; // 80mm × dynamic height in microns
+        const receiptPageSize = { width: 80000,  height: 3276000 }; // 80mm × 3276mm in microns
 
         const printOptions = {
             silent: true,
