@@ -32,10 +32,10 @@
                 padding: 0 !important;
                 margin: 0 !important;
             }
-            /* Specific Fix for Normal Receipts - shift left to prevent edge cutoff */
+            /* Specific Fix for Normal Receipts - balance padding to prevent cutoff on both edges */
             body.is-receipt .print-container {
                 margin: 0 !important;
-                padding: 0 22px 0 0 !important;
+                padding: 0 8px !important;
             }
         }
     </style>
