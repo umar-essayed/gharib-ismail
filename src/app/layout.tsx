@@ -89,7 +89,7 @@ export default function RootLayout({
               "image": "https://www.nassryaa-gomla.markets/logo.jpeg",
               "@id": "https://www.nassryaa-gomla.markets/#localbusiness",
               "url": "https://www.nassryaa-gomla.markets",
-              "telephone": "+201211879341",
+              "telephone": "+201019786034",
               "priceRange": "$$",
               "address": {
                 "@type": "PostalAddress",

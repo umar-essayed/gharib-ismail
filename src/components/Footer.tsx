@@ -25,7 +25,7 @@ export default function Footer() {
               <span>الإسكندرية، العامرية، الناصرية القديمة</span>
             </p>
             <p className="flex items-center justify-start gap-2" dir="ltr">
-              <span>📞 +20 1211879341</span>
+              <span>📞 +20 1019786034</span>
             </p>
             <p className="flex items-center justify-start gap-2">
               <span>الرمز البريدي: 5334310</span>

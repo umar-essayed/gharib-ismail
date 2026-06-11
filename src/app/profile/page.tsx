@@ -126,7 +126,7 @@ function ProfileContent() {
       `*القيمة الإجمالية:* ${ord.total_price.toFixed(2)} ج.م\n\n` +
       `*قائمة الأصناف:*\n${itemsList}`
     );
-    window.open(`https://wa.me/201211879341?text=${text}`, '_blank');
+    window.open(`https://wa.me/201019786034?text=${text}`, '_blank');
   };
 
   // Stepper status builder
