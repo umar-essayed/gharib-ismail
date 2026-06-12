@@ -119,9 +119,9 @@ function HomeContent() {
           setBanners(dbBanners as Banner[]);
         } else {
           setBanners([
-            { id: 'slide-1', title: 'خصومات تصل إلى 30% على منتجات الألبان والأرز', image_url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=1200&auto=format&fit=crop&q=60' },
-            { id: 'slide-2', title: 'شحن مجاني للعامرية والناصرية للطلبات فوق 800 جنيه', image_url: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=1200&auto=format&fit=crop&q=60' },
-            { id: 'slide-3', title: 'وفر أكتر مع أسعار الجملة لكرتونة المجمدات والمنظفات', image_url: 'https://images.unsplash.com/photo-1578916171728-46686eefb14d?w=1200&auto=format&fit=crop&q=60' }
+            { id: 'slide-1', title: 'خصومات تصل إلى 30% على منتجات الألبان والأرز', image_url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=1200&auto=format&fit=crop&q=60', link_url: '/products' },
+            { id: 'slide-2', title: 'شحن مجاني للعامرية والناصرية للطلبات فوق 800 جنيه', image_url: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=1200&auto=format&fit=crop&q=60', link_url: '/products' },
+            { id: 'slide-3', title: 'وفر أكتر مع أسعار الجملة لكرتونة المجمدات والمنظفات', image_url: 'https://images.unsplash.com/photo-1578916171728-46686eefb14d?w=1200&auto=format&fit=crop&q=60', link_url: '/products' }
           ]);
         }
 
@@ -139,9 +139,9 @@ function HomeContent() {
         setCategories(mockCategories);
         setProducts(mockProducts);
         setBanners([
-          { id: 'slide-1', title: 'خصومات تصل إلى 30% على منتجات الألبان والأرز', image_url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=1200&auto=format&fit=crop&q=60' },
-          { id: 'slide-2', title: 'شحن مجاني للعامرية والناصرية للطلبات فوق 800 جنيه', image_url: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=1200&auto=format&fit=crop&q=60' },
-          { id: 'slide-3', title: 'وفر أكتر مع أسعار الجملة لكرتونة المجمدات والمنظفات', image_url: 'https://images.unsplash.com/photo-1578916171728-46686eefb14d?w=1200&auto=format&fit=crop&q=60' }
+          { id: 'slide-1', title: 'خصومات تصل إلى 30% على منتجات الألبان والأرز', image_url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=1200&auto=format&fit=crop&q=60', link_url: '/products' },
+          { id: 'slide-2', title: 'شحن مجاني للعامرية والناصرية للطلبات فوق 800 جنيه', image_url: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=1200&auto=format&fit=crop&q=60', link_url: '/products' },
+          { id: 'slide-3', title: 'وفر أكتر مع أسعار الجملة لكرتونة المجمدات والمنظفات', image_url: 'https://images.unsplash.com/photo-1578916171728-46686eefb14d?w=1200&auto=format&fit=crop&q=60', link_url: '/products' }
         ]);
         setCoupons([
           { code: 'ARZ15', description: 'خصم 15% على إجمالي السلة', discount_type: 'percentage', discount_value: 15, min_order_amount: 0, points_cost: 0, is_active: true },
