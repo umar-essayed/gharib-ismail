@@ -119,9 +119,9 @@ function HomeContent() {
           setBanners(dbBanners as Banner[]);
         } else {
           setBanners([
-            { id: 'slide-1', title: 'خصومات تصل إلى 30% على منتجات الألبان والأرز', image_url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=1200&auto=[...]
-            { id: 'slide-2', title: 'شحن مجاني للعامرية والناصرية للطلبات فوق 800 جنيه', image_url: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d[...]
-            { id: 'slide-3', title: 'وفر أكتر مع أسعار الجملة لكرتونة المجمدات والمنظفات', image_url: 'https://images.unsplash.com/photo-1578916171728-46686[...]
+            { id: 'slide-1', title: 'خصومات تصل إلى 30% على منتجات الألبان والأرز', image_url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=1200&auto=format&fit=crop&q=60' },
+            { id: 'slide-2', title: 'شحن مجاني للعامرية والناصرية للطلبات فوق 800 جنيه', image_url: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=1200&auto=format&fit=crop&q=60' },
+            { id: 'slide-3', title: 'وفر أكتر مع أسعار الجملة لكرتونة المجمدات والمنظفات', image_url: 'https://images.unsplash.com/photo-1578916171728-46686eefb14d?w=1200&auto=format&fit=crop&q=60' }
           ]);
         }
 
@@ -130,8 +130,8 @@ function HomeContent() {
         } else {
           setCoupons([
             { code: 'ARZ15', description: 'خصم 15% على إجمالي السلة', discount_type: 'percentage', discount_value: 15, min_order_amount: 0, points_cost: 0, is_active: true },
-            { code: 'GHARIB50', description: 'خصم بقيمة 50 جنيه للطلبات بقيمة 300 جنيه أو أكثر', discount_type: 'fixed', discount_value: 50, min_order_amount: 300, po[...]
-            { code: 'POINTS100', description: 'خصم بقيمة 100 جنيه مقابل 100 نقطة ذهبية من رصيدك', discount_type: 'points', discount_value: 100, min_order_amount: 0, po[...]
+            { code: 'GHARIB50', description: 'خصم بقيمة 50 جنيه للطلبات بقيمة 300 جنيه أو أكثر', discount_type: 'fixed', discount_value: 50, min_order_amount: 300, points_cost: 0, is_active: true },
+            { code: 'POINTS100', description: 'خصم بقيمة 100 جنيه مقابل 100 نقطة ذهبية من رصيدك', discount_type: 'points', discount_value: 100, min_order_amount: 0, points_cost: 100, is_active: true }
           ]);
         }
       } catch (err) {
@@ -139,14 +139,14 @@ function HomeContent() {
         setCategories(mockCategories);
         setProducts(mockProducts);
         setBanners([
-          { id: 'slide-1', title: 'خصومات تصل إلى 30% على منتجات الألبان والأرز', image_url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=1200&auto=fo[...]
-          { id: 'slide-2', title: 'شحن مجاني للعامرية والناصرية للطلبات فوق 800 جنيه', image_url: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c83[...]
-          { id: 'slide-3', title: 'وفر أكتر مع أسعار الجملة لكرتونة المجمدات والمنظفات', image_url: 'https://images.unsplash.com/photo-1578916171728-46[...]
+          { id: 'slide-1', title: 'خصومات تصل إلى 30% على منتجات الألبان والأرز', image_url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=1200&auto=format&fit=crop&q=60' },
+          { id: 'slide-2', title: 'شحن مجاني للعامرية والناصرية للطلبات فوق 800 جنيه', image_url: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=1200&auto=format&fit=crop&q=60' },
+          { id: 'slide-3', title: 'وفر أكتر مع أسعار الجملة لكرتونة المجمدات والمنظفات', image_url: 'https://images.unsplash.com/photo-1578916171728-46686eefb14d?w=1200&auto=format&fit=crop&q=60' }
         ]);
         setCoupons([
           { code: 'ARZ15', description: 'خصم 15% على إجمالي السلة', discount_type: 'percentage', discount_value: 15, min_order_amount: 0, points_cost: 0, is_active: true },
-          { code: 'GHARIB50', description: 'خصم بقيمة 50 جنيه للطلبات بقيمة 300 جنيه أو أكثر', discount_type: 'fixed', discount_value: 50, min_order_amount: 300, poin[...]
-          { code: 'POINTS100', description: 'خصم بقيمة 100 جنيه مقابل 100 نقطة ذهبية من رصيدك', discount_type: 'points', discount_value: 100, min_order_amount: 0, poin[...]
+          { code: 'GHARIB50', description: 'خصم بقيمة 50 جنيه للطلبات بقيمة 300 جنيه أو أكثر', discount_type: 'fixed', discount_value: 50, min_order_amount: 300, points_cost: 0, is_active: true },
+          { code: 'POINTS100', description: 'خصم بقيمة 100 جنيه مقابل 100 نقطة ذهبية من رصيدك', discount_type: 'points', discount_value: 100, min_order_amount: 0, points_cost: 100, is_active: true }
         ]);
       } finally {
         setLoading(false);
@@ -258,8 +258,8 @@ function HomeContent() {
                   </h2>
                   <div className="pt-1 sm:pt-2">
                     <Link
-                      href={banner.link_url}
-                      className="bg-primary hover:bg-primary-dark text-white font-extrabold px-4 py-2 sm:px-6 sm:py-2.5 rounded-xl text-[10px] sm:text-xs shadow-md transition-all inline-block hover:-t[...]
+                      href={banner.link_url || '/products'}
+                      className="bg-primary hover:bg-primary-dark text-white font-extrabold px-4 py-2 sm:px-6 sm:py-2.5 rounded-xl text-[10px] sm:text-xs shadow-md transition-all inline-block hover:shadow-lg"
                     >
                       اكتشف العرض الآن 🛒
                     </Link>
@@ -273,13 +273,13 @@ function HomeContent() {
               <>
                 <button
                   onClick={() => setCurrentSlide(prev => (prev - 1 + banners.length) % banners.length)}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-white/20 hover:bg-white/40 text-white w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-xs transition-al[...]
+                  className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-white/20 hover:bg-white/40 text-white w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-xs transition-all"
                 >
                   ❮
                 </button>
                 <button
                   onClick={() => setCurrentSlide(prev => (prev + 1) % banners.length)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-white/20 hover:bg-white/40 text-white w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-xs transition-a[...]
+                  className="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-white/20 hover:bg-white/40 text-white w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-xs transition-all"
                 >
                   ❯
                 </button>
@@ -352,7 +352,7 @@ function HomeContent() {
             <div className="pt-2">
               <Link
                 href="/products"
-                className="bg-primary hover:bg-primary-dark text-white font-extrabold px-10 py-3.5 rounded-xl shadow-lg hover:shadow-primary/25 transition-all duration-300 transform hover:-translate-y[...]
+                className="bg-primary hover:bg-primary-dark text-white font-extrabold px-10 py-3.5 rounded-xl shadow-lg hover:shadow-primary/25 transition-all duration-300 transform hover:-translate-y-0.5"
               >
                 تسوّق الكتالوج بالكامل 🛒
               </Link>
@@ -368,27 +368,27 @@ function HomeContent() {
           <ScrollReveal className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               
-              <div className="bg-slate-50/50 border border-slate-100 p-6 rounded-2xl flex flex-col items-center md:items-start text-center md:text-right gap-3 shadow-xs hover:shadow-lg transition-all [...]
+              <div className="bg-slate-50/50 border border-slate-100 p-6 rounded-2xl flex flex-col items-center md:items-start text-center md:text-right gap-3 shadow-xs hover:shadow-lg transition-all group">
                 <span className="text-2xl p-3 bg-primary/10 text-primary rounded-2xl group-hover:bg-primary group-hover:text-white transition-colors duration-300">📦</span>
                 <div>
                   <h3 className="font-black text-slate-900 text-sm">توزيع المواد الغذائية والمجمدات</h3>
-                  <p className="text-[10px] text-slate-500 mt-1 font-semibold leading-relaxed">تغطية شاملة لقطاع الفنادق، المطاعم، ومحلات التجزئة بأعلى[...]
+                  <p className="text-[10px] text-slate-500 mt-1 font-semibold leading-relaxed">تغطية شاملة لقطاع الفنادق، المطاعم، ومحلات التجزئة بأعلى مستويات الجودة</p>
                 </div>
               </div>
 
-              <div className="bg-slate-50/50 border border-slate-100 p-6 rounded-2xl flex flex-col items-center md:items-start text-center md:text-right gap-3 shadow-xs hover:shadow-lg transition-all [...]
+              <div className="bg-slate-50/50 border border-slate-100 p-6 rounded-2xl flex flex-col items-center md:items-start text-center md:text-right gap-3 shadow-xs hover:shadow-lg transition-all group">
                 <span className="text-2xl p-3 bg-primary/10 text-primary rounded-2xl group-hover:bg-primary group-hover:text-white transition-colors duration-300">👑</span>
                 <div>
                   <h3 className="font-black text-slate-900 text-sm">أسعار الجملة للجميع</h3>
-                  <p className="text-[10px] text-slate-500 mt-1 font-semibold leading-relaxed">نوفر للبيوت والمحلات التجارية ميزة التسوق بسعر الجملة اب�[...]
+                  <p className="text-[10px] text-slate-500 mt-1 font-semibold leading-relaxed">نوفر للبيوت والمحلات التجارية ميزة التسوق بسعر الجملة الحقيقي</p>
                 </div>
               </div>
 
-              <div className="bg-slate-50/50 border border-slate-100 p-6 rounded-2xl flex flex-col items-center md:items-start text-center md:text-right gap-3 shadow-xs hover:shadow-lg transition-all [...]
+              <div className="bg-slate-50/50 border border-slate-100 p-6 rounded-2xl flex flex-col items-center md:items-start text-center md:text-right gap-3 shadow-xs hover:shadow-lg transition-all group">
                 <span className="text-2xl p-3 bg-primary/10 text-primary rounded-2xl group-hover:bg-primary group-hover:text-white transition-colors duration-300">🏛️</span>
                 <div>
                   <h3 className="font-black text-slate-900 text-sm">مؤسسة الناصرية التجارية</h3>
-                  <p className="text-[10px] text-slate-500 mt-1 font-semibold leading-relaxed">الوجهة الرسمية الموثوقة لخدمة أهالي الناصرية والعامرية ب[...]
+                  <p className="text-[10px] text-slate-500 mt-1 font-semibold leading-relaxed">الوجهة الرسمية الموثوقة لخدمة أهالي الناصرية والعامرية بخبرة عريقة</p>
                 </div>
               </div>
 
@@ -443,7 +443,7 @@ function HomeContent() {
                 {coupons.map((coupon) => (
                   <div 
                     key={coupon.code}
-                    className="bg-white border-2 border-dashed border-primary/20 p-3 sm:p-4 rounded-2xl flex items-center gap-2.5 sm:gap-3 shadow-xs hover:border-primary/45 transition-all relative ove[...]
+                    className="bg-white border-2 border-dashed border-primary/20 p-3 sm:p-4 rounded-2xl flex items-center gap-2.5 sm:gap-3 shadow-xs hover:border-primary/45 transition-all relative overflow-hidden group"
                   >
                     {/* Dashed ticket stub cutouts */}
                     <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-slate-50 border-r border-slate-200/50 rounded-full" />
@@ -547,7 +547,7 @@ function HomeContent() {
               onClick={() => router.push('/products')}
               className="flex flex-col items-center gap-2.5 flex-shrink-0 group focus:outline-none cursor-pointer"
             >
-              <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full border border-slate-200 group-hover:border-primary flex items-center justify-center p-1.5 transition-all duration-300 bg-white shad[...]
+              <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full border border-slate-200 group-hover:border-primary flex items-center justify-center p-1.5 transition-all duration-300 bg-white shadow-xs">
                 <div className="w-full h-full bg-primary/10 rounded-full flex items-center justify-center text-primary text-xs font-black">الكل</div>
               </div>
               <span className="text-xs font-black text-slate-700 group-hover:text-primary transition-colors">عرض الكل</span>
@@ -559,7 +559,7 @@ function HomeContent() {
                 onClick={() => router.push(`/products?category=${cat.slug || cat.id}`)}
                 className="flex flex-col items-center gap-2.5 flex-shrink-0 group focus:outline-none cursor-pointer"
               >
-                <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full border border-slate-200 group-hover:border-primary flex items-center justify-center overflow-hidden p-1 transition-all duration-3[...]
+                <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full border border-slate-200 group-hover:border-primary flex items-center justify-center overflow-hidden p-1 transition-all duration-300 bg-white shadow-xs">
                   <img 
                     src={cat.image_url || 'https://images.unsplash.com/photo-1534482421-64566f976cfa?w=100'} 
                     alt={cat.name}
@@ -686,7 +686,7 @@ function HomeContent() {
             <div className="flex justify-center pt-4">
               <Link 
                 href="/products"
-                className="bg-primary hover:bg-primary-dark text-white font-extrabold px-10 py-3.5 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5 inl[...]
+                className="bg-primary hover:bg-primary-dark text-white font-extrabold px-10 py-3.5 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5"
               >
                 عرض جميع المنتجات والسلع 🛒
               </Link>
@@ -704,7 +704,7 @@ function HomeContent() {
           {/* Left: Google Map View Mockup */}
           <div className="md:col-span-7 rounded-3xl overflow-hidden shadow-lg border border-slate-200/80 h-72 sm:h-auto min-h-[350px] relative transition-transform duration-500 hover:scale-[1.01]">
             <iframe 
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3290.891572559634!2d29.789759360246514!3d30.99744417289808!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x14f5937e2d3273b7[...]
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3290.891572559634!2d29.789759360246514!3d30.99744417289808!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x14f5937e2d3273b7%3A0x5a7c7e8f5e5e5e5e!2sElmansoria%20Mosque!5e0!3m2!1sar!2seg!4v1234567890"
               className="w-full h-full border-0 absolute inset-0"
               allowFullScreen
               loading="lazy"
@@ -762,10 +762,10 @@ function HomeContent() {
             {/* CTA coordinates map link */}
             <div className="relative z-10">
               <a 
-                href="https://www.google.com/maps/search/?api=1&query=30.9974441,29.7897593&query_place_id=ChIJYVLKpmnD9RQRsODX063FS20"
+                href="https://www.google.com/maps/search/?api=1&query=30.9974441,29.7897593"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full bg-primary hover:bg-primary-dark text-white font-extrabold py-3.5 rounded-2xl transition-all shadow-md hover:shadow-lg hover:shadow-primary/20 text-center inline-bloc[...]
+                className="w-full bg-primary hover:bg-primary-dark text-white font-extrabold py-3.5 rounded-2xl transition-all shadow-md hover:shadow-lg hover:shadow-primary/20 text-center inline-block"
               >
                 🗺️ فتح الاتجاهات في خرائط جوجل
               </a>
