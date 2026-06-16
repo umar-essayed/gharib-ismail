@@ -58,6 +58,14 @@ function AdminOrdersContent() {
   const [isMuted, setIsMuted] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
 
+  // Products Pagination State
+  const PRODUCTS_PAGE_SIZE = 1000;
+  const [productsTotalCount, setProductsTotalCount] = useState(0);
+  const [productsLoadedCount, setProductsLoadedCount] = useState(0);
+  const [loadingMoreProducts, setLoadingMoreProducts] = useState(false);
+  const [productSearchQuery, setProductSearchQuery] = useState('');
+  const [productSearchTimeout, setProductSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+
   // Banner Form States
   const [newBannerTitle, setNewBannerTitle] = useState('');
   const [newBannerImageUrl, setNewBannerImageUrl] = useState('');
@@ -133,6 +141,71 @@ function AdminOrdersContent() {
     setLogs((prev) => [`[${new Date().toLocaleTimeString('ar-EG')}] ${msg}`, ...prev.slice(0, 4)]);
   };
 
+  const normalizeProduct = (p: any): Product => ({
+    ...p,
+    price: Number(p.price),
+    sale_price: p.sale_price !== null ? Number(p.sale_price) : null,
+    wholesale_price: Number(p.wholesale_price)
+  });
+
+  const fetchProductsBatch = async (offset: number, append: boolean, search?: string) => {
+    let query = supabase
+      .from('products')
+      .select('*', { count: 'exact' })
+      .order('name', { ascending: true });
+
+    if (search && search.trim()) {
+      query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`);
+    }
+
+    query = query.range(offset, offset + PRODUCTS_PAGE_SIZE - 1);
+
+    const { data: prodData, error: prodErr, count } = await query;
+    if (prodErr) throw prodErr;
+
+    if (prodData) {
+      const normalized = prodData.map(normalizeProduct) as Product[];
+      if (append) {
+        setProducts(prev => [...prev, ...normalized]);
+        setProductsLoadedCount(prev => prev + prodData.length);
+      } else {
+        setProducts(normalized);
+        setProductsLoadedCount(prodData.length);
+      }
+      setProductsTotalCount(count || 0);
+    }
+  };
+
+  const handleLoadMoreProducts = async () => {
+    try {
+      setLoadingMoreProducts(true);
+      await fetchProductsBatch(products.length, true, productSearchQuery || undefined);
+    } catch (err) {
+      console.error('Error loading more products:', err);
+    } finally {
+      setLoadingMoreProducts(false);
+    }
+  };
+
+  const handleProductSearch = (value: string) => {
+    setProductSearchQuery(value);
+
+    if (productSearchTimeout) clearTimeout(productSearchTimeout);
+
+    const timeout = setTimeout(async () => {
+      try {
+        setLoading(true);
+        await fetchProductsBatch(0, false, value || undefined);
+      } catch (err) {
+        console.error('Error searching products:', err);
+      } finally {
+        setLoading(false);
+      }
+    }, 400);
+
+    setProductSearchTimeout(timeout);
+  };
+
   // 2. Fetch existing data from Supabase
   const fetchData = async () => {
     try {
@@ -156,22 +229,8 @@ function AdminOrdersContent() {
       if (catErr) throw catErr;
       setCategories(catData as Category[] || []);
 
-      // Load Products
-      const { data: prodData, error: prodErr } = await supabase
-        .from('products')
-        .select('*')
-        .order('name', { ascending: true });
-
-      if (prodErr) throw prodErr;
-      if (prodData) {
-        const normalized = prodData.map(p => ({
-          ...p,
-          price: Number(p.price),
-          sale_price: p.sale_price !== null ? Number(p.sale_price) : null,
-          wholesale_price: Number(p.wholesale_price)
-        })) as Product[];
-        setProducts(normalized);
-      }
+      // Load Products (first 1000)
+      await fetchProductsBatch(0, false);
 
       // Load Banners
       try {
@@ -574,13 +633,8 @@ function AdminOrdersContent() {
     return matchesStatus && matchesSearch;
   });
 
-  // Filter Logic for Products
-  const filteredProducts = products.filter((p) => {
-    return searchQuery
-      ? p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()))
-      : true;
-  });
+  // Filter Logic for Products (search is now server-side)
+  const filteredProducts = products;
 
   // Stats / Analytics Calculations
   const statsRevenue = orders.reduce((acc, o) => acc + Number(o.total_price), 0);
@@ -1100,8 +1154,8 @@ function AdminOrdersContent() {
                 <input
                   type="text"
                   placeholder="ابحث عن منتج بالاسم أو الوصف..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  value={productSearchQuery}
+                  onChange={(e) => handleProductSearch(e.target.value)}
                   className="w-full bg-white border border-slate-200 rounded-xl pr-9 pl-3 py-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary text-slate-900 text-right"
                 />
                 <Search size={14} className="absolute right-3 top-3 text-slate-400" />
@@ -1206,6 +1260,28 @@ function AdminOrdersContent() {
                     </tbody>
                   </table>
                 </div>
+              </div>
+            )}
+
+            {/* Load More Products Button */}
+            {!loading && products.length > 0 && products.length < productsTotalCount && (
+              <div className="flex flex-col items-center gap-2 pt-2">
+                <button
+                  onClick={handleLoadMoreProducts}
+                  disabled={loadingMoreProducts}
+                  className="bg-primary hover:bg-primary-dark disabled:opacity-60 text-white font-bold text-xs px-8 py-3 rounded-xl transition-all shadow-xs flex items-center gap-2 cursor-pointer"
+                >
+                  {loadingMoreProducts ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      جاري التحميل...
+                    </>
+                  ) : (
+                    <>
+                      تحميل المزيد ({products.length} من {productsTotalCount})
+                    </>
+                  )}
+                </button>
               </div>
             )}
           </div>
