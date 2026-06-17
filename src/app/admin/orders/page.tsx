@@ -59,7 +59,7 @@ function AdminOrdersContent() {
   const [logs, setLogs] = useState<string[]>([]);
 
   // Products Pagination State
-  const PRODUCTS_PAGE_SIZE = 1000;
+  const PRODUCTS_PAGE_SIZE = 100;
   const [productsTotalCount, setProductsTotalCount] = useState(0);
   const [productsLoadedCount, setProductsLoadedCount] = useState(0);
   const [loadingMoreProducts, setLoadingMoreProducts] = useState(false);
