@@ -279,6 +279,9 @@ export default function ProductDetailClient({ id }: { id: string }) {
 
         if (currentProd) {
           setProduct(currentProd);
+          if (currentProd.accepts_weight) {
+            setSelectedWeightGrams(1000);
+          }
 
           // Fetch related products (same category, excluding current product)
           const { data: dbRelated } = await supabase
@@ -401,8 +404,12 @@ export default function ProductDetailClient({ id }: { id: string }) {
 
   const handleAddToCart = () => {
     if (product) {
-      if (product.accepts_weight && !selectedWeightGrams) return;
-      addToCart(product, quantity, selectedWeightGrams || undefined);
+      if (product.accepts_weight) {
+        const weight = selectedWeightGrams || 1000;
+        addToCart(product, quantity, weight);
+      } else {
+        addToCart(product, quantity);
+      }
       setAddedMessage(true);
       setTimeout(() => setAddedMessage(false), 2000);
     }
@@ -417,11 +424,15 @@ export default function ProductDetailClient({ id }: { id: string }) {
 
   const handleCustomWeight = (value: string) => {
     setCustomWeightInput(value);
-    const num = parseInt(value);
-    if (num > 0) {
-      setSelectedWeightGrams(num);
+    if (value.trim() === '') {
+      setSelectedWeightGrams(1000);
     } else {
-      setSelectedWeightGrams(null);
+      const num = parseInt(value);
+      if (num > 0) {
+        setSelectedWeightGrams(num);
+      } else {
+        setSelectedWeightGrams(null);
+      }
     }
   };
 
@@ -731,15 +742,11 @@ export default function ProductDetailClient({ id }: { id: string }) {
               {/* Add to Cart Button */}
               <button
                 onClick={handleAddToCart}
-                disabled={product.stock <= 0 || (product.accepts_weight && !selectedWeightGrams)}
+                disabled={product.stock <= 0}
                 className="flex-1 bg-primary hover:bg-primary-dark disabled:bg-slate-200 text-white font-extrabold py-3.5 rounded-xl shadow-lg hover:shadow-primary/25 transition-all flex items-center justify-center gap-2 text-xs cursor-pointer transform hover:-translate-y-0.5"
               >
                 <ShoppingBag size={15} />
-                {product.stock <= 0
-                  ? 'نفذت الكمية مؤقتاً'
-                  : product.accepts_weight && !selectedWeightGrams
-                  ? 'اختر الوزن أولاً'
-                  : 'إضافة إلى سلة التسوق 🛒'}
+                {product.stock <= 0 ? 'نفذت الكمية مؤقتاً' : 'إضافة إلى سلة التسوق 🛒'}
               </button>
 
               {/* Share button */}
