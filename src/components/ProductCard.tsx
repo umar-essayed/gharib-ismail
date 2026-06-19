@@ -70,7 +70,7 @@ export default function ProductCard({ product, layout = 'grid' }: ProductCardPro
     }
   };
 
-  const WEIGHT_PRESETS = [250, 500, 1000];
+  const WEIGHT_PRESETS = [125, 250, 500, 1000];
 
   // Determine if a B2C discount is active
   const hasDiscount = product.sale_price !== null && product.sale_price !== undefined && product.sale_price > 0;

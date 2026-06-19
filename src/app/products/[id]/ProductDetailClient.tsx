@@ -415,7 +415,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
     }
   };
 
-  const WEIGHT_PRESETS = [250, 500, 1000];
+  const WEIGHT_PRESETS = [125, 250, 500, 1000];
 
   const handlePresetWeight = (grams: number) => {
     setSelectedWeightGrams(grams);
