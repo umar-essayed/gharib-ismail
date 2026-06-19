@@ -347,7 +347,10 @@ function CheckoutContent() {
       // Create Order items payload
       const orderItems = cart.map(item => {
         const isWholesale = item.quantity >= item.product.wholesale_min_qty;
-        const unitPrice = isWholesale 
+        const isWeight = item.selected_weight_grams && item.product.accepts_weight;
+        const unitPrice = isWeight
+          ? (item.product.price / 1000) * item.selected_weight_grams!
+          : isWholesale 
           ? item.product.wholesale_price 
           : (item.product.sale_price || item.product.price);
         return {
@@ -355,7 +358,8 @@ function CheckoutContent() {
           name: item.product.name,
           qty: item.quantity,
           price: unitPrice,
-          pricing_type: isWholesale ? 'wholesale' : (item.product.sale_price ? 'sale' : 'regular')
+          pricing_type: isWeight ? 'weight' : isWholesale ? 'wholesale' : (item.product.sale_price ? 'sale' : 'regular'),
+          weight_grams: item.selected_weight_grams || undefined
         };
       });
 
@@ -900,14 +904,29 @@ function CheckoutContent() {
             <div className="divide-y divide-gray-50 max-h-48 overflow-y-auto pr-1">
               {cart.map((item) => {
                 const isWholesale = item.quantity >= item.product.wholesale_min_qty;
-                const unitPrice = isWholesale ? item.product.wholesale_price : (item.product.sale_price || item.product.price);
+                const isWeight = item.selected_weight_grams && item.product.accepts_weight;
+                const unitPrice = isWeight
+                  ? (item.product.price / 1000) * item.selected_weight_grams!
+                  : isWholesale ? item.product.wholesale_price : (item.product.sale_price || item.product.price);
                 return (
-                  <div key={item.product.id} className="py-2.5 flex justify-between gap-4 text-right text-xs">
+                  <div key={`${item.product.id}_${item.selected_weight_grams || ''}`} className="py-2.5 flex justify-between gap-4 text-right text-xs">
                     <div>
                       <p className="font-bold text-gray-900 line-clamp-1">{item.product.name}</p>
                       <p className="text-[10px] text-gray-400 mt-0.5 font-semibold">
-                        الكمية: {item.quantity} × {unitPrice.toFixed(2)} ج.م
-                        {isWholesale && <span className="bg-amber-50 text-amber-800 text-[8px] font-black px-1 rounded-sm border border-amber-250 mr-1.5 inline-block">سعر جملة</span>}
+                        {isWeight ? (
+                          <>
+                            {item.selected_weight_grams! >= 1000
+                              ? `${(item.selected_weight_grams! / 1000).toFixed(item.selected_weight_grams! % 1000 === 0 ? 0 : 2)} كيلو`
+                              : `${item.selected_weight_grams} جرام`}
+                            {' × '}{unitPrice.toFixed(2)} ج.م
+                            <span className="bg-blue-50 text-blue-700 text-[8px] font-black px-1 rounded-sm border border-blue-200 mr-1.5 inline-block">وزن</span>
+                          </>
+                        ) : (
+                          <>
+                            الكمية: {item.quantity} × {unitPrice.toFixed(2)} ج.م
+                            {isWholesale && <span className="bg-amber-50 text-amber-800 text-[8px] font-black px-1 rounded-sm border border-amber-250 mr-1.5 inline-block">سعر جملة</span>}
+                          </>
+                        )}
                       </p>
                     </div>
                     <span className="font-bold text-gray-900 whitespace-nowrap">{(unitPrice * item.quantity).toFixed(2)} ج.م</span>

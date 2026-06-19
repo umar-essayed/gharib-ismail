@@ -6,9 +6,9 @@ import { supabase } from '@/lib/supabase';
 
 interface CartContextType {
   cart: CartItem[];
-  addToCart: (product: Product, quantity?: number) => void;
-  removeFromCart: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  addToCart: (product: Product, quantity?: number, weightGrams?: number) => void;
+  removeFromCart: (productId: string, weightGrams?: number) => void;
+  updateQuantity: (productId: string, quantity: number, weightGrams?: number) => void;
   clearCart: () => void;
   
   // Wishlist
@@ -134,37 +134,49 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  const addToCart = (product: Product, quantity = 1) => {
-    const existingIndex = cart.findIndex((item) => item.product.id === product.id);
+  const addToCart = (product: Product, quantity = 1, weightGrams?: number) => {
+    const cartKey = weightGrams ? `${product.id}_${weightGrams}` : product.id;
+    const existingIndex = cart.findIndex((item) => {
+      const itemKey = item.selected_weight_grams
+        ? `${item.product.id}_${item.selected_weight_grams}`
+        : item.product.id;
+      return itemKey === cartKey;
+    });
     const newCart = [...cart];
 
     if (existingIndex > -1) {
       const newQty = newCart[existingIndex].quantity + quantity;
-      // Cap at product stock if available
       newCart[existingIndex].quantity = product.stock > 0 ? Math.min(newQty, product.stock) : newQty;
     } else {
       const newQty = product.stock > 0 ? Math.min(quantity, product.stock) : quantity;
-      newCart.push({ product, quantity: newQty });
+      newCart.push({ product, quantity: newQty, selected_weight_grams: weightGrams });
     }
     saveCart(newCart);
   };
 
-  const removeFromCart = (productId: string) => {
-    const newCart = cart.filter((item) => item.product.id !== productId);
+  const removeFromCart = (productId: string, weightGrams?: number) => {
+    const newCart = cart.filter((item) => {
+      if (weightGrams) {
+        return !(item.product.id === productId && item.selected_weight_grams === weightGrams);
+      }
+      return item.product.id !== productId;
+    });
     saveCart(newCart);
-    // Reset points calculation if cart is empty
     if (newCart.length === 0) {
       setPointsToRedeemState(0);
     }
   };
 
-  const updateQuantity = (productId: string, quantity: number) => {
+  const updateQuantity = (productId: string, quantity: number, weightGrams?: number) => {
     if (quantity <= 0) {
-      removeFromCart(productId);
+      removeFromCart(productId, weightGrams);
       return;
     }
     const newCart = cart.map((item) => {
-      if (item.product.id === productId) {
+      const isMatch = weightGrams
+        ? item.product.id === productId && item.selected_weight_grams === weightGrams
+        : item.product.id === productId && !item.selected_weight_grams;
+      if (isMatch) {
         const cappedQty = item.product.stock > 0 ? Math.min(quantity, item.product.stock) : quantity;
         return { ...item, quantity: cappedQty };
       }
@@ -196,16 +208,19 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Calculated items helper
   const calculateItemPrice = (item: CartItem) => {
-    const { product, quantity } = item;
-    // B2B Dynamic Pricing: wholesale_price applies if quantity >= wholesale_min_qty
+    const { product, quantity, selected_weight_grams } = item;
+
+    if (selected_weight_grams && product.accepts_weight) {
+      const pricePerGram = product.price / 1000;
+      return pricePerGram * selected_weight_grams;
+    }
+
     if (quantity >= product.wholesale_min_qty) {
       return product.wholesale_price;
     }
-    // B2C Discount Pricing: sale_price takes priority if exists
     if (product.sale_price !== undefined && product.sale_price !== null && product.sale_price > 0) {
       return product.sale_price;
     }
-    // Regular Retail Price
     return product.price;
   };
 

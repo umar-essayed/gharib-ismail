@@ -38,6 +38,10 @@ export default function ProductDetailClient({ id }: { id: string }) {
   const [loading, setLoading] = useState(true);
   const [addedMessage, setAddedMessage] = useState(false);
 
+  // Weight selection state
+  const [selectedWeightGrams, setSelectedWeightGrams] = useState<number | null>(null);
+  const [customWeightInput, setCustomWeightInput] = useState('');
+
   // Gallery active index state
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
@@ -397,11 +401,36 @@ export default function ProductDetailClient({ id }: { id: string }) {
 
   const handleAddToCart = () => {
     if (product) {
-      addToCart(product, quantity);
+      if (product.accepts_weight && !selectedWeightGrams) return;
+      addToCart(product, quantity, selectedWeightGrams || undefined);
       setAddedMessage(true);
       setTimeout(() => setAddedMessage(false), 2000);
     }
   };
+
+  const WEIGHT_PRESETS = [250, 500, 1000];
+
+  const handlePresetWeight = (grams: number) => {
+    setSelectedWeightGrams(grams);
+    setCustomWeightInput('');
+  };
+
+  const handleCustomWeight = (value: string) => {
+    setCustomWeightInput(value);
+    const num = parseInt(value);
+    if (num > 0) {
+      setSelectedWeightGrams(num);
+    } else {
+      setSelectedWeightGrams(null);
+    }
+  };
+
+  const calculateWeightPrice = (grams: number): number => {
+    if (!product) return 0;
+    return (product.price / 1000) * grams;
+  };
+
+  const currentWeightPrice = selectedWeightGrams ? calculateWeightPrice(selectedWeightGrams) : 0;
 
   if (loading) {
     return (
@@ -613,6 +642,68 @@ export default function ProductDetailClient({ id }: { id: string }) {
 
             <div className="w-full h-px bg-slate-100" />
 
+            {/* Weight Selection (only for weight-enabled products) */}
+            {product.accepts_weight && (
+              <div className="bg-blue-50/50 border border-blue-200/60 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-blue-600 font-bold">سعر الكيلو: {product.price.toFixed(2)} ج.م</span>
+                  <h4 className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                    اختر الوزن
+                    <span className="text-sm">⚖️</span>
+                  </h4>
+                </div>
+
+                {/* Preset weight buttons */}
+                <div className="flex items-center gap-2 justify-end flex-wrap">
+                  {WEIGHT_PRESETS.map((grams) => (
+                    <button
+                      key={grams}
+                      type="button"
+                      onClick={() => handlePresetWeight(grams)}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                        selectedWeightGrams === grams && !customWeightInput
+                          ? 'bg-primary text-white border-primary shadow-md'
+                          : 'bg-white text-slate-700 border-slate-200 hover:border-primary hover:text-primary'
+                      }`}
+                    >
+                      {grams === 1000 ? '1 كيلو' : `${grams} جرام`}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Custom weight input */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-slate-500 font-bold">جرام</span>
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="أدخل الوزن بالجرام"
+                    value={customWeightInput}
+                    onChange={(e) => handleCustomWeight(e.target.value)}
+                    className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-left focus:outline-none focus:ring-1 focus:ring-primary text-slate-900 font-bold"
+                  />
+                  <span className="text-xs font-bold text-slate-600">أو أكتب عدد الجرامات:</span>
+                </div>
+
+                {/* Calculated price display */}
+                {selectedWeightGrams && (
+                  <div className="bg-white rounded-xl p-3 border border-blue-200/40 flex items-center justify-between">
+                    <span className="text-base font-black text-primary">{currentWeightPrice.toFixed(2)} ج.م</span>
+                    <div className="text-right">
+                      <span className="text-xs font-bold text-slate-700 block">
+                        {selectedWeightGrams >= 1000
+                          ? `${(selectedWeightGrams / 1000).toFixed(selectedWeightGrams % 1000 === 0 ? 0 : 2)} كيلو`
+                          : `${selectedWeightGrams} جرام`}
+                      </span>
+                      <span className="text-[9px] text-slate-400 font-medium">
+                        ({product.price.toFixed(2)} ج.م × {selectedWeightGrams / 1000} كيلو)
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Controls: Quantity Selector & CTAs */}
             <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
               
@@ -640,11 +731,15 @@ export default function ProductDetailClient({ id }: { id: string }) {
               {/* Add to Cart Button */}
               <button
                 onClick={handleAddToCart}
-                disabled={product.stock <= 0}
+                disabled={product.stock <= 0 || (product.accepts_weight && !selectedWeightGrams)}
                 className="flex-1 bg-primary hover:bg-primary-dark disabled:bg-slate-200 text-white font-extrabold py-3.5 rounded-xl shadow-lg hover:shadow-primary/25 transition-all flex items-center justify-center gap-2 text-xs cursor-pointer transform hover:-translate-y-0.5"
               >
                 <ShoppingBag size={15} />
-                {product.stock <= 0 ? 'نفذت الكمية مؤقتاً' : 'إضافة إلى سلة التسوق 🛒'}
+                {product.stock <= 0
+                  ? 'نفذت الكمية مؤقتاً'
+                  : product.accepts_weight && !selectedWeightGrams
+                  ? 'اختر الوزن أولاً'
+                  : 'إضافة إلى سلة التسوق 🛒'}
               </button>
 
               {/* Share button */}
@@ -680,7 +775,9 @@ export default function ProductDetailClient({ id }: { id: string }) {
             {/* Success notification banner */}
             {addedMessage && (
               <div className="bg-emerald-50 border border-emerald-200 text-emerald-750 p-3.5 rounded-xl text-xs font-bold text-center flex items-center justify-center gap-2 animate-bounce">
-                <span>تمت إضافة {quantity} قطع من السلعة إلى سلتك بنجاح! 🛒</span>
+                <span>
+                  تمت إضافة {quantity} {selectedWeightGrams ? `(${selectedWeightGrams >= 1000 ? `${selectedWeightGrams/1000} كيلو` : `${selectedWeightGrams} جرام`})` : 'قطع'} من السلعة إلى سلتك بنجاح! 🛒
+                </span>
               </div>
             )}
 

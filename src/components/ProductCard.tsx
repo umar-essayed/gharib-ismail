@@ -17,6 +17,8 @@ export default function ProductCard({ product, layout = 'grid' }: ProductCardPro
   const [added, setAdded] = useState(false);
   const [qtyToAdd, setQtyToAdd] = useState(1);
   const [shareSuccess, setShareSuccess] = useState(false);
+  const [showWeightSelector, setShowWeightSelector] = useState(false);
+  const [selectedWeight, setSelectedWeight] = useState<number | null>(null);
 
   const handleShareProduct = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -51,10 +53,24 @@ export default function ProductCard({ product, layout = 'grid' }: ProductCardPro
   };
 
   const handleAddToCart = () => {
-    addToCart(product, qtyToAdd);
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1500);
+    if (product.accepts_weight) {
+      if (selectedWeight) {
+        addToCart(product, qtyToAdd, selectedWeight);
+        setAdded(true);
+        setSelectedWeight(null);
+        setShowWeightSelector(false);
+        setTimeout(() => setAdded(false), 1500);
+      } else {
+        setShowWeightSelector(true);
+      }
+    } else {
+      addToCart(product, qtyToAdd);
+      setAdded(true);
+      setTimeout(() => setAdded(false), 1500);
+    }
   };
+
+  const WEIGHT_PRESETS = [250, 500, 1000];
 
   // Determine if a B2C discount is active
   const hasDiscount = product.sale_price !== null && product.sale_price !== undefined && product.sale_price > 0;
@@ -141,7 +157,9 @@ export default function ProductCard({ product, layout = 'grid' }: ProductCardPro
             {/* Price section */}
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 pt-1">
               <div className="flex items-center gap-1 text-[11px] sm:text-sm font-black text-gray-900">
-                <span className="text-[9px] text-gray-400 font-bold">قطاعي:</span>
+                <span className="text-[9px] text-gray-400 font-bold">
+                  {product.accepts_weight ? 'سعر الكيلو:' : 'قطاعي:'}
+                </span>
                 <span>{activeRetailPrice.toFixed(2)} ج.م</span>
                 {hasDiscount && (
                   <span className="text-[9px] sm:text-xs text-gray-400 line-through mr-1">
@@ -150,10 +168,12 @@ export default function ProductCard({ product, layout = 'grid' }: ProductCardPro
                 )}
               </div>
 
-              <div className="bg-gold-light/40 border border-gold/15 px-2 py-0.5 rounded-lg text-[10px] sm:text-xs text-primary font-black flex items-center gap-1">
-                <span>جملة: {product.wholesale_price.toFixed(2)} ج.م</span>
-                <span className="text-[8px] text-gray-500 font-medium">({product.wholesale_min_qty}ق)</span>
-              </div>
+              {!product.accepts_weight && (
+                <div className="bg-gold-light/40 border border-gold/15 px-2 py-0.5 rounded-lg text-[10px] sm:text-xs text-primary font-black flex items-center gap-1">
+                  <span>جملة: {product.wholesale_price.toFixed(2)} ج.م</span>
+                  <span className="text-[8px] text-gray-500 font-medium">({product.wholesale_min_qty}ق)</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -184,9 +204,25 @@ export default function ProductCard({ product, layout = 'grid' }: ProductCardPro
               }`}
             >
               {added ? <Check size={11} /> : <Plus size={11} />}
-              <span>{added ? 'تم' : 'أضف'}</span>
+              <span>{added ? 'تم' : product.accepts_weight && !selectedWeight ? 'اختر وزن' : 'أضف'}</span>
             </button>
           </div>
+
+          {/* Weight Selector Popover (list layout) */}
+          {showWeightSelector && product.accepts_weight && (
+            <div className="flex items-center gap-1.5 pt-2 flex-wrap justify-end">
+              {WEIGHT_PRESETS.map((g) => (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => { setSelectedWeight(g); setShowWeightSelector(false); addToCart(product, qtyToAdd, g); setAdded(true); setTimeout(() => setAdded(false), 1500); }}
+                  className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 cursor-pointer transition-colors"
+                >
+                  {g === 1000 ? '1 كيلو' : `${g} جرام`}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
       </div>
@@ -270,7 +306,9 @@ export default function ProductCard({ product, layout = 'grid' }: ProductCardPro
             
             {/* Retail Price Row */}
             <div className="flex items-baseline justify-between gap-1">
-              <span className="text-[9px] sm:text-[11px] text-gray-400 font-semibold whitespace-nowrap">سعر المفرد:</span>
+              <span className="text-[9px] sm:text-[11px] text-gray-400 font-semibold whitespace-nowrap">
+                {product.accepts_weight ? 'سعر الكيلو:' : 'سعر المفرد:'}
+              </span>
               <div className="flex items-center gap-1 flex-wrap justify-end">
                 {hasDiscount && (
                   <span className="text-[9px] sm:text-xs text-gray-455 line-through">
@@ -283,20 +321,22 @@ export default function ProductCard({ product, layout = 'grid' }: ProductCardPro
               </div>
             </div>
 
-            {/* Wholesale Price Row */}
-            <div className="bg-gold-light/60 p-1.5 sm:p-2.5 rounded-xl border border-gold/15 flex flex-col sm:flex-row sm:items-center sm:justify-between text-right gap-0.5 sm:gap-2">
-              <div className="text-right">
-                <p className="text-[8px] sm:text-[10px] text-gold-dark font-black">
-                  جملة التجار 👑
-                </p>
-                <p className="text-[7px] sm:text-[9px] text-gray-400 font-medium">
-                  من {product.wholesale_min_qty} قطع
-                </p>
+            {/* Wholesale Price Row (hidden for weight products) */}
+            {!product.accepts_weight && (
+              <div className="bg-gold-light/60 p-1.5 sm:p-2.5 rounded-xl border border-gold/15 flex flex-col sm:flex-row sm:items-center sm:justify-between text-right gap-0.5 sm:gap-2">
+                <div className="text-right">
+                  <p className="text-[8px] sm:text-[10px] text-gold-dark font-black">
+                    جملة التجار 👑
+                  </p>
+                  <p className="text-[7px] sm:text-[9px] text-gray-400 font-medium">
+                    من {product.wholesale_min_qty} قطع
+                  </p>
+                </div>
+                <span className="text-xs sm:text-sm font-black text-primary whitespace-nowrap">
+                  {product.wholesale_price.toFixed(2)} <span className="text-[8px] sm:text-[10px] font-bold text-gray-600">ج.م</span>
+                </span>
               </div>
-              <span className="text-xs sm:text-sm font-black text-primary whitespace-nowrap">
-                {product.wholesale_price.toFixed(2)} <span className="text-[8px] sm:text-[10px] font-bold text-gray-600">ج.م</span>
-              </span>
-            </div>
+            )}
 
           </div>
         </div>
@@ -328,9 +368,25 @@ export default function ProductCard({ product, layout = 'grid' }: ProductCardPro
             }`}
           >
             {added ? <Check size={11} /> : <Plus size={11} />}
-            <span>{added ? 'تم' : 'أضف'}</span>
+            <span>{added ? 'تم' : product.accepts_weight && !selectedWeight ? 'اختر وزن' : 'أضف'}</span>
           </button>
         </div>
+
+        {/* Weight Selector Popover (grid layout) */}
+        {showWeightSelector && product.accepts_weight && (
+          <div className="flex items-center gap-1.5 pt-2 flex-wrap justify-end">
+            {WEIGHT_PRESETS.map((g) => (
+              <button
+                key={g}
+                type="button"
+                onClick={() => { setSelectedWeight(g); setShowWeightSelector(false); addToCart(product, qtyToAdd, g); setAdded(true); setTimeout(() => setAdded(false), 1500); }}
+                className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 cursor-pointer transition-colors"
+              >
+                {g === 1000 ? '1 كيلو' : `${g} جرام`}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
     </div>

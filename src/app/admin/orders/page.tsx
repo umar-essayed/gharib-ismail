@@ -92,6 +92,7 @@ function AdminOrdersContent() {
   const [prodImageUrl, setProdImageUrl] = useState('');
   const [prodCategoryId, setProdCategoryId] = useState('');
   const [prodIsAvailable, setProdIsAvailable] = useState(true);
+  const [prodAcceptsWeight, setProdAcceptsWeight] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
   const [saveLoading, setSaveLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -398,6 +399,7 @@ function AdminOrdersContent() {
       setProdImageUrl(prod.image_url || '');
       setProdCategoryId(prod.category_id || '');
       setProdIsAvailable(prod.is_available);
+      setProdAcceptsWeight(prod.accepts_weight || false);
     } else {
       setProdName('');
       setProdDesc('');
@@ -409,6 +411,7 @@ function AdminOrdersContent() {
       setProdImageUrl('');
       setProdCategoryId(categories[0]?.id || '');
       setProdIsAvailable(true);
+      setProdAcceptsWeight(false);
     }
     setShowProductModal(true);
   };
@@ -475,7 +478,8 @@ function AdminOrdersContent() {
         stock: Number(prodStock),
         image_url: prodImageUrl.trim() || null,
         category_id: prodCategoryId || null,
-        is_available: prodIsAvailable
+        is_available: prodIsAvailable,
+        accepts_weight: prodAcceptsWeight
       };
 
       if (editingProduct) {
@@ -1201,7 +1205,12 @@ function AdminOrdersContent() {
                                 )}
                               </div>
                               <div>
-                                <h4 className="font-bold text-slate-900 text-xs line-clamp-1">{prod.name}</h4>
+                                <div className="flex items-center gap-1.5">
+                                  <h4 className="font-bold text-slate-900 text-xs line-clamp-1">{prod.name}</h4>
+                                  {prod.accepts_weight && (
+                                    <span className="text-[8px] bg-blue-50 text-blue-600 border border-blue-200 px-1.5 py-0.5 rounded-full font-bold whitespace-nowrap">⚖ وزن</span>
+                                  )}
+                                </div>
                                 <p className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">{prod.description || 'لا يوجد وصف'}</p>
                               </div>
                             </td>
@@ -1211,9 +1220,13 @@ function AdminOrdersContent() {
                                 <div className="space-y-0.5">
                                   <span className="text-primary font-bold">{prod.sale_price.toFixed(2)} ج.م</span>
                                   <span className="text-[9px] text-slate-400 line-through block">{prod.price.toFixed(2)} ج.م</span>
+                                  {prod.accepts_weight && <span className="text-[8px] text-blue-500 font-bold block">/ للكيلو</span>}
                                 </div>
                               ) : (
-                                <span className="font-bold">{prod.price.toFixed(2)} ج.م</span>
+                                <div>
+                                  <span className="font-bold">{prod.price.toFixed(2)} ج.م</span>
+                                  {prod.accepts_weight && <span className="text-[8px] text-blue-500 font-bold block">/ للكيلو</span>}
+                                </div>
                               )}
                             </td>
                             <td className="p-3 text-center text-slate-900 font-bold">{prod.wholesale_price.toFixed(2)} ج.م</td>
@@ -1842,7 +1855,12 @@ CREATE POLICY "Admin Delete Storage" ON storage.objects FOR DELETE USING (bucket
                 </div>
 
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-700 block">السعر الأساسي (قطاعي) *</label>
+                  <label className="font-bold text-slate-700 block">
+                    {prodAcceptsWeight ? 'سعر الكيلو (قطاعي) *' : 'السعر الأساسي (قطاعي) *'}
+                  </label>
+                  {prodAcceptsWeight && (
+                    <span className="text-[9px] text-primary font-bold block">السعر يُحسب تلقائياً بناءً على وزن الجرامات</span>
+                  )}
                   <input
                     type="number"
                     step="0.01"
@@ -1953,6 +1971,25 @@ CREATE POLICY "Admin Delete Storage" ON storage.objects FOR DELETE USING (bucket
                   onChange={(e) => setProdIsAvailable(e.target.checked)}
                   className="text-primary focus:ring-primary rounded cursor-pointer"
                 />
+              </div>
+
+              <div className="flex items-center gap-2 justify-end py-1">
+                <div className="flex flex-col items-end">
+                  <label className="font-bold text-slate-700 cursor-pointer" htmlFor="accepts-weight-check">يقبل تخصيص الوزن (بالجرام)</label>
+                  <span className="text-[9px] text-slate-400 font-medium">السعر الأساسي يُعتبر سعر الكيلو</span>
+                </div>
+                <button
+                  type="button"
+                  id="accepts-weight-check"
+                  onClick={() => setProdAcceptsWeight(!prodAcceptsWeight)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
+                    prodAcceptsWeight ? 'bg-primary' : 'bg-slate-300'
+                  }`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${
+                    prodAcceptsWeight ? 'translate-x-1' : 'translate-x-6'
+                  }`} />
+                </button>
               </div>
 
               <div className="flex gap-2.5 pt-2">

@@ -31,11 +31,13 @@ export interface Product {
   is_available: boolean;
   created_at?: string;
   importance_score?: number;
+  accepts_weight?: boolean;
 }
 
 export interface CartItem {
   product: Product;
   quantity: number;
+  selected_weight_grams?: number;
 }
 
 export interface Order {
@@ -47,6 +49,7 @@ export interface Order {
     qty: number;
     price: number;
     image_url?: string;
+    weight_grams?: number;
   }[];
   total_price: number;
   status: 'pending' | 'preparing' | 'delivering' | 'completed';
