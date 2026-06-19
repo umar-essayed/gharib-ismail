@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Send, MapPin, Phone, Mail } from 'lucide-react';
+import { Send, MapPin, Phone, Mail, MessageCircle } from 'lucide-react';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -69,7 +69,33 @@ export default function Footer() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 font-bold gap-4 text-center sm:text-right">
-        <p>© {currentYear} الناصرية جملة ماركت. جميع الحقوق محفوظة.</p>
+        <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+          <p>© {currentYear} الناصرية جملة ماركت. جميع الحقوق محفوظة.</p>
+          <span className="hidden sm:inline text-slate-700">|</span>
+          <p className="text-[10px] text-slate-400">
+            المطوّر: <span className="text-primary font-black">عمر الدغيدي (3amor)</span>
+          </p>
+          <div className="flex items-center gap-3">
+            <a
+              href="tel:01553442304"
+              className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-primary transition-colors"
+              title="اتصال"
+            >
+              <Phone size={11} />
+              <span>01553442304</span>
+            </a>
+            <a
+              href="https://wa.me/201553442304"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-[10px] text-emerald-500 hover:text-emerald-400 transition-colors"
+              title="واتساب"
+            >
+              <MessageCircle size={11} />
+              <span>واتساب</span>
+            </a>
+          </div>
+        </div>
         <p className="text-[10px] text-slate-600">تم التطوير بجودة متناهية لتطبيقات الويب الحديثة</p>
       </div>
     </footer>
