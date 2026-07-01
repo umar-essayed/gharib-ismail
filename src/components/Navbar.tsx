@@ -42,18 +42,39 @@ export default function Navbar() {
   const [wishlistAddedMap, setWishlistAddedMap] = useState<Record<string, boolean>>({});
   
   const [categories, setCategories] = useState<any[]>([]);
+  const [categoryGroups, setCategoryGroups] = useState<any[]>([]);
   const router = useRouter();
   const [threshold, setThreshold] = useState(800);
 
   React.useEffect(() => {
-    fetch('/ecom_config.json')
-      .then((r) => r.json())
-      .then((data) => {
-        if (data && data.free_shipping_threshold) {
-          setThreshold(Number(data.free_shipping_threshold));
+    async function loadConfig() {
+      try {
+        const { data: settingsData } = await supabase
+          .from('pos_settings')
+          .select('key, value');
+        
+        if (settingsData && settingsData.length > 0) {
+          const thresholdSetting = settingsData.find(s => s.key === 'ecom_free_shipping_threshold');
+          if (thresholdSetting) {
+            setThreshold(Number(thresholdSetting.value));
+            return;
+          }
         }
-      })
-      .catch(() => {});
+      } catch (err) {
+        console.warn('Failed to load threshold from pos_settings:', err);
+      }
+      
+      // Fallback
+      fetch('/ecom_config.json')
+        .then((r) => r.json())
+        .then((data) => {
+          if (data && data.free_shipping_threshold) {
+            setThreshold(Number(data.free_shipping_threshold));
+          }
+        })
+        .catch(() => {});
+    }
+    loadConfig();
   }, []);
 
   const getCategoryEmoji = (name: string) => {
@@ -85,6 +106,19 @@ export default function Navbar() {
             { id: 'cat-5', name: 'مشروبات وعصائر', slug: 'beverages' },
             { id: 'cat-6', name: 'شيكولاتة ومقرمشات وتسالي', slug: 'snacks-sweets' }
           ]);
+        }
+
+        // Fetch groups
+        try {
+          const { data: groupData, error: groupErr } = await supabase
+            .from('category_groups')
+            .select('*')
+            .order('name', { ascending: true });
+          if (groupData && !groupErr) {
+            setCategoryGroups(groupData);
+          }
+        } catch (groupError) {
+          console.warn('Could not fetch category groups in Navbar:', groupError);
         }
       } catch (err) {
         setCategories([
@@ -325,7 +359,20 @@ export default function Navbar() {
               >
                 الكل 📦
               </button>
-              {categories.map((cat) => (
+              {/* Group Tabs */}
+              {categoryGroups.map((group) => (
+                <button
+                  key={group.id}
+                  type="button"
+                  onClick={() => router.push(`/products?category=group:${group.id}`)}
+                  className="px-4 py-2 bg-white text-gray-750 border border-gray-200/85 rounded-full whitespace-nowrap hover:bg-slate-50 transition-all flex items-center gap-1 shadow-xs cursor-pointer"
+                >
+                  <span>{group.name}</span>
+                  <span className="text-[10px]">📁</span>
+                </button>
+              ))}
+              {/* Standalone Categories */}
+              {categories.filter(cat => !cat.group_id).map((cat) => (
                 <button
                   key={cat.id}
                   type="button"
@@ -353,15 +400,52 @@ export default function Navbar() {
               </button>
 
               {isCategoriesOpen && (
-                <div className="absolute right-0 mt-2 w-52 bg-white border border-gray-100 rounded-xl shadow-md py-1.5 z-50 text-right">
-                  {categories.map((cat) => (
+                <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-100 rounded-2xl shadow-xl py-2.5 z-50 text-right overflow-y-auto max-h-[400px] scrollbar-thin">
+                  {/* Category Groups and their subcategories */}
+                  {categoryGroups.map((group) => {
+                    const subCats = categories.filter(c => c.group_id === group.id);
+                    return (
+                      <div key={group.id} className="border-b border-gray-50 last:border-0 pb-1.5 mb-1.5 last:pb-0 last:mb-0">
+                        {/* Group Header */}
+                        <button
+                          onClick={() => {
+                            setIsCategoriesOpen(false);
+                            router.push(`/products?category=group:${group.id}`);
+                          }}
+                          className="w-full text-right px-4 py-1.5 hover:bg-primary/5 text-slate-800 hover:text-primary font-black text-xs cursor-pointer flex items-center justify-between flex-row-reverse"
+                        >
+                          <span>{group.name}</span>
+                          <span className="text-[10px] opacity-75">📁</span>
+                        </button>
+                        {/* Subcategories */}
+                        <div className="mr-3 pr-2 border-r border-slate-100 space-y-0.5">
+                          {subCats.map((cat) => (
+                            <button
+                              key={cat.id}
+                              onClick={() => {
+                                setIsCategoriesOpen(false);
+                                router.push(`/products?category=${cat.slug || cat.id}`);
+                              }}
+                              className="w-full text-right px-3 py-1 hover:text-primary text-gray-500 font-bold text-[11px] cursor-pointer flex items-center justify-between flex-row-reverse"
+                            >
+                              <span>{cat.name}</span>
+                              <span className="text-[10px]">{getCategoryEmoji(cat.name)}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Independent Categories (no group) */}
+                  {categories.filter(cat => !cat.group_id).map((cat) => (
                     <button
                       key={cat.id}
                       onClick={() => {
                         setIsCategoriesOpen(false);
                         router.push(`/products?category=${cat.slug || cat.id}`);
                       }}
-                      className="w-full text-right px-4 py-2 hover:bg-primary/5 hover:text-primary text-gray-700 font-bold text-xs cursor-pointer flex items-center justify-between flex-row-reverse"
+                      className="w-full text-right px-4 py-2 hover:bg-primary/5 hover:text-primary text-slate-800 font-bold text-xs cursor-pointer flex items-center justify-between flex-row-reverse"
                     >
                       <span>{cat.name}</span>
                       <span className="text-xs">{getCategoryEmoji(cat.name)}</span>
@@ -507,7 +591,22 @@ export default function Navbar() {
                   <div className="space-y-2">
                     <p className="text-[9px] text-slate-400 font-extrabold px-2 mb-0.5">الأقسام الرئيسية</p>
                     <div className="grid grid-cols-2 gap-2">
-                      {categories.map((cat) => (
+                      {/* Group Shortcuts */}
+                      {categoryGroups.map((group) => (
+                        <button
+                          key={group.id}
+                          onClick={() => {
+                            setIsMobileMenuOpen(false);
+                            router.push(`/products?category=group:${group.id}`);
+                          }}
+                          className="text-right px-3 py-2 bg-slate-50 border border-slate-200/60 rounded-xl font-bold text-[11px] text-gray-750 hover:bg-primary/5 hover:text-primary hover:border-primary/20 transition-all cursor-pointer flex items-center justify-between flex-row-reverse gap-1 min-w-0"
+                        >
+                          <span className="truncate">{group.name}</span>
+                          <span className="text-[10px] flex-shrink-0">📁</span>
+                        </button>
+                      ))}
+                      {/* Standalone Categories */}
+                      {categories.filter(cat => !cat.group_id).map((cat) => (
                         <button
                           key={cat.id}
                           onClick={() => {

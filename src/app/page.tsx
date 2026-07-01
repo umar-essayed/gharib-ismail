@@ -8,7 +8,7 @@ import Footer from '@/components/Footer';
 import ProductCard from '@/components/ProductCard';
 import ScrollReveal from '@/components/ScrollReveal';
 import Canvas3DGrid from '@/components/Canvas3DGrid';
-import { Product, Category, Order, Banner, Coupon } from '@/types';
+import { Product, Category, CategoryGroup, Order, Banner, Coupon } from '@/types';
 import { supabase } from '@/lib/supabase';
 import { mockCategories, mockProducts } from '@/lib/mockData';
 import { useCart } from '@/context/CartContext';
@@ -24,6 +24,8 @@ function HomeContent() {
   const { profile } = useCart();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryGroups, setCategoryGroups] = useState<CategoryGroup[]>([]);
+  const [activeGroupFilter, setActiveGroupFilter] = useState<string | null>(null);
   const [banners, setBanners] = useState<Banner[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [latestOrder, setLatestOrder] = useState<Order | null>(null);
@@ -80,6 +82,19 @@ function HomeContent() {
           .from('categories')
           .select('*')
           .order('importance_score', { ascending: false });
+
+        // Load category groups
+        try {
+          const { data: dbGroups } = await supabase
+            .from('category_groups')
+            .select('*')
+            .order('name', { ascending: true });
+          if (dbGroups) {
+            setCategoryGroups(dbGroups as CategoryGroup[]);
+          }
+        } catch (groupError) {
+          console.warn('Could not load category groups on homepage:', groupError);
+        }
           
         const { data: dbProds } = await supabase
           .from('products')
@@ -125,14 +140,10 @@ function HomeContent() {
           ]);
         }
 
-        if (dbCoupons && dbCoupons.length > 0) {
+        if (dbCoupons) {
           setCoupons(dbCoupons as Coupon[]);
         } else {
-          setCoupons([
-            { code: 'ARZ15', description: 'خصم 15% على إجمالي السلة', discount_type: 'percentage', discount_value: 15, min_order_amount: 0, points_cost: 0, is_active: true },
-            { code: 'GHARIB50', description: 'خصم بقيمة 50 جنيه للطلبات بقيمة 300 جنيه أو أكثر', discount_type: 'fixed', discount_value: 50, min_order_amount: 300, points_cost: 0, is_active: true },
-            { code: 'POINTS100', description: 'خصم بقيمة 100 جنيه مقابل 100 نقطة ذهبية من رصيدك', discount_type: 'points', discount_value: 100, min_order_amount: 0, points_cost: 100, is_active: true }
-          ]);
+          setCoupons([]);
         }
       } catch (err) {
         console.error('Failed to load store data, using mock data fallback', err);
@@ -143,11 +154,7 @@ function HomeContent() {
           { id: 'slide-2', title: 'شحن مجاني للعامرية والناصرية للطلبات فوق 800 جنيه', image_url: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=1200&auto=format&fit=crop&q=60', link_url: '/products' },
           { id: 'slide-3', title: 'وفر أكتر مع أسعار الجملة لكرتونة المجمدات والمنظفات', image_url: 'https://images.unsplash.com/photo-1578916171728-46686eefb14d?w=1200&auto=format&fit=crop&q=60', link_url: '/products' }
         ]);
-        setCoupons([
-          { code: 'ARZ15', description: 'خصم 15% على إجمالي السلة', discount_type: 'percentage', discount_value: 15, min_order_amount: 0, points_cost: 0, is_active: true },
-          { code: 'GHARIB50', description: 'خصم بقيمة 50 جنيه للطلبات بقيمة 300 جنيه أو أكثر', discount_type: 'fixed', discount_value: 50, min_order_amount: 300, points_cost: 0, is_active: true },
-          { code: 'POINTS100', description: 'خصم بقيمة 100 جنيه مقابل 100 نقطة ذهبية من رصيدك', discount_type: 'points', discount_value: 100, min_order_amount: 0, points_cost: 100, is_active: true }
-        ]);
+        setCoupons([]);
       } finally {
         setLoading(false);
       }
@@ -543,32 +550,108 @@ function HomeContent() {
 
           {/* Circular Category Pills */}
           <div className="flex items-center justify-center gap-5 overflow-x-auto pb-4 scrollbar-none">
-            <button
-              onClick={() => router.push('/products')}
-              className="flex flex-col items-center gap-2.5 flex-shrink-0 group focus:outline-none cursor-pointer"
-            >
-              <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full border border-slate-200 group-hover:border-primary flex items-center justify-center p-1.5 transition-all duration-300 bg-white shadow-xs">
-                <div className="w-full h-full bg-primary/10 rounded-full flex items-center justify-center text-primary text-xs font-black">الكل</div>
-              </div>
-              <span className="text-xs font-black text-slate-700 group-hover:text-primary transition-colors">عرض الكل</span>
-            </button>
+            
+            {activeGroupFilter === null ? (
+              <>
+                {/* All Button */}
+                <button
+                  onClick={() => router.push('/products')}
+                  className="flex flex-col items-center gap-2.5 flex-shrink-0 group focus:outline-none cursor-pointer"
+                >
+                  <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full border border-slate-200 group-hover:border-primary flex items-center justify-center p-1.5 transition-all duration-300 bg-white shadow-xs">
+                    <div className="w-full h-full bg-primary/10 rounded-full flex items-center justify-center text-primary text-xs font-black">الكل</div>
+                  </div>
+                  <span className="text-xs font-black text-slate-700 group-hover:text-primary transition-colors">عرض الكل</span>
+                </button>
 
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => router.push(`/products?category=${cat.slug || cat.id}`)}
-                className="flex flex-col items-center gap-2.5 flex-shrink-0 group focus:outline-none cursor-pointer"
-              >
-                <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full border border-slate-200 group-hover:border-primary flex items-center justify-center overflow-hidden p-1 transition-all duration-300 bg-white shadow-xs">
-                  <img 
-                    src={cat.image_url || 'https://images.unsplash.com/photo-1534482421-64566f976cfa?w=100'} 
-                    alt={cat.name}
-                    className="w-full h-full object-cover rounded-full group-hover:scale-105 transition-transform duration-300"
-                  />
-                </div>
-                <span className="text-xs font-black text-slate-700 group-hover:text-primary transition-colors">{cat.name}</span>
-              </button>
-            ))}
+                {/* Group Buttons */}
+                {categoryGroups.map((group) => {
+                  // Find first category in this group to use its image as group cover
+                  const groupCats = categories.filter(c => c.group_id === group.id);
+                  const coverImage = groupCats.find(c => c.image_url)?.image_url || 'https://images.unsplash.com/photo-1534482421-64566f976cfa?w=100';
+                  
+                  return (
+                    <button
+                      key={group.id}
+                      onClick={() => setActiveGroupFilter(group.id)}
+                      className="flex flex-col items-center gap-2.5 flex-shrink-0 group focus:outline-none cursor-pointer animate-in fade-in duration-200"
+                    >
+                      <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full border border-slate-200 group-hover:border-primary flex items-center justify-center overflow-hidden p-1 transition-all duration-300 bg-white shadow-xs relative">
+                        <img 
+                          src={coverImage} 
+                          alt={group.name}
+                          className="w-full h-full object-cover rounded-full group-hover:scale-105 transition-transform duration-300"
+                        />
+                        {/* Folder badge indicator */}
+                        <span className="absolute bottom-0 right-0 bg-primary text-white text-[8px] px-1 rounded-full font-black scale-90">📁</span>
+                      </div>
+                      <span className="text-xs font-black text-slate-700 group-hover:text-primary transition-colors">{group.name}</span>
+                    </button>
+                  );
+                })}
+
+                {/* Standalone Categories */}
+                {categories.filter(cat => !cat.group_id).map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => router.push(`/products?category=${cat.slug || cat.id}`)}
+                    className="flex flex-col items-center gap-2.5 flex-shrink-0 group focus:outline-none cursor-pointer animate-in fade-in duration-200"
+                  >
+                    <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full border border-slate-200 group-hover:border-primary flex items-center justify-center overflow-hidden p-1 transition-all duration-300 bg-white shadow-xs">
+                      <img 
+                        src={cat.image_url || 'https://images.unsplash.com/photo-1534482421-64566f976cfa?w=100'} 
+                        alt={cat.name}
+                        className="w-full h-full object-cover rounded-full group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                    <span className="text-xs font-black text-slate-700 group-hover:text-primary transition-colors">{cat.name}</span>
+                  </button>
+                ))}
+              </>
+            ) : (
+              <>
+                {/* Back Button */}
+                <button
+                  onClick={() => setActiveGroupFilter(null)}
+                  className="flex flex-col items-center gap-2.5 flex-shrink-0 group focus:outline-none cursor-pointer animate-in fade-in duration-200"
+                >
+                  <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full border border-slate-200 group-hover:border-primary flex items-center justify-center p-1.5 transition-all duration-300 bg-white shadow-xs">
+                    <div className="w-full h-full bg-slate-100 rounded-full flex items-center justify-center text-slate-650 text-xs font-black">↩ رجوع</div>
+                  </div>
+                  <span className="text-xs font-black text-slate-500 group-hover:text-slate-700 transition-colors">رجوع للمجموعات</span>
+                </button>
+
+                {/* All in Group Button */}
+                <button
+                  onClick={() => router.push(`/products?category=group:${activeGroupFilter}`)}
+                  className="flex flex-col items-center gap-2.5 flex-shrink-0 group focus:outline-none cursor-pointer animate-in fade-in duration-200"
+                >
+                  <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full border border-slate-200 group-hover:border-primary flex items-center justify-center p-1.5 transition-all duration-300 bg-white shadow-xs">
+                    <div className="w-full h-full bg-primary/10 rounded-full flex items-center justify-center text-primary text-xs font-black">الكل هنا</div>
+                  </div>
+                  <span className="text-xs font-black text-slate-700 group-hover:text-primary transition-colors">عرض كل المجموعة</span>
+                </button>
+
+                {/* Subcategories inside activeGroupFilter */}
+                {categories.filter(cat => cat.group_id === activeGroupFilter).map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => router.push(`/products?category=${cat.slug || cat.id}`)}
+                    className="flex flex-col items-center gap-2.5 flex-shrink-0 group focus:outline-none cursor-pointer animate-in fade-in duration-200"
+                  >
+                    <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full border border-slate-200 group-hover:border-primary flex items-center justify-center overflow-hidden p-1 transition-all duration-300 bg-white shadow-xs">
+                      <img 
+                        src={cat.image_url || 'https://images.unsplash.com/photo-1534482421-64566f976cfa?w=100'} 
+                        alt={cat.name}
+                        className="w-full h-full object-cover rounded-full group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                    <span className="text-xs font-black text-slate-700 group-hover:text-primary transition-colors">{cat.name}</span>
+                  </button>
+                ))}
+              </>
+            )}
+
           </div>
 
         </ScrollReveal>
