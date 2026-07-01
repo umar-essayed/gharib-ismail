@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import ProductCard from '@/components/ProductCard';
-import { Product, Category } from '@/types';
+import { Product, Category, CategoryGroup } from '@/types';
 import { supabase } from '@/lib/supabase';
 import { mockCategories, mockProducts } from '@/lib/mockData';
 import { isUuid } from '@/lib/utils';
@@ -15,7 +15,9 @@ import Link from 'next/link';
 function ProductsContent() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryGroups, setCategoryGroups] = useState<CategoryGroup[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
   const [searchVal, setSearchVal] = useState('');
   const [loading, setLoading] = useState(true);
   const [layoutMode, setLayoutMode] = useState<'grid' | 'list'>('grid');
@@ -44,10 +46,22 @@ function ProductsContent() {
 
     if (urlCategory) {
       setSelectedCategory(urlCategory);
+      if (urlCategory.startsWith('group:')) {
+        setSelectedGroup(urlCategory.replace('group:', ''));
+      } else {
+        // Find if this category belongs to a group
+        const cat = categories.find(c => c.id === urlCategory || c.slug === urlCategory);
+        if (cat && cat.group_id) {
+          setSelectedGroup(cat.group_id);
+        } else {
+          setSelectedGroup(null);
+        }
+      }
     } else {
       setSelectedCategory(null);
+      setSelectedGroup(null);
     }
-  }, [urlSearch, urlCategory]);
+  }, [urlSearch, urlCategory, categories]);
 
   // Fetch products function
   async function fetchProducts(pageNum: number, categoryId: string | null, searchString: string, append: boolean) {
@@ -64,18 +78,34 @@ function ProductsContent() {
         .eq('is_available', true);
 
       if (categoryId) {
-        let resolvedCategoryId = categoryId;
-        if (!isUuid(categoryId)) {
+        if (categoryId.startsWith('group:')) {
+          const groupId = categoryId.replace('group:', '');
+          // Fetch categories belonging to this group
           const { data: catData } = await supabase
             .from('categories')
             .select('id')
-            .eq('slug', categoryId)
-            .single();
-          if (catData) {
-            resolvedCategoryId = catData.id;
+            .eq('group_id', groupId);
+          if (catData && catData.length > 0) {
+            const ids = catData.map(c => c.id);
+            query = query.in('category_id', ids);
+          } else {
+            // No categories in group, return empty results
+            query = query.eq('category_id', '00000000-0000-0000-0000-000000000000');
           }
+        } else {
+          let resolvedCategoryId = categoryId;
+          if (!isUuid(categoryId)) {
+            const { data: catData } = await supabase
+              .from('categories')
+              .select('id')
+              .eq('slug', categoryId)
+              .single();
+            if (catData) {
+              resolvedCategoryId = catData.id;
+            }
+          }
+          query = query.eq('category_id', resolvedCategoryId);
         }
-        query = query.eq('category_id', resolvedCategoryId);
       }
 
       if (searchString) {
@@ -121,7 +151,7 @@ function ProductsContent() {
     }
   }
 
-  // Load categories once
+  // Load categories and groups once
   useEffect(() => {
     async function loadCategories() {
       try {
@@ -134,6 +164,19 @@ function ProductsContent() {
           setCategories(dbCats as Category[]);
         } else {
           setCategories(mockCategories);
+        }
+
+        // Load groups
+        try {
+          const { data: dbGroups } = await supabase
+            .from('category_groups')
+            .select('*')
+            .order('name', { ascending: true });
+          if (dbGroups) {
+            setCategoryGroups(dbGroups as CategoryGroup[]);
+          }
+        } catch (groupErr) {
+          console.warn('Could not load category groups:', groupErr);
         }
       } catch (err) {
         console.error('Failed to load categories', err);
@@ -174,6 +217,21 @@ function ProductsContent() {
     router.push(`/products${query ? `?${query}` : ''}`);
   };
 
+  const handleGroupSelect = (groupId: string | null) => {
+    if (groupId) {
+      setSelectedGroup(groupId);
+      const slugOrId = `group:${groupId}`;
+      setSelectedCategory(slugOrId);
+      const searchPart = searchVal ? `search=${encodeURIComponent(searchVal)}` : '';
+      const catPart = `category=${slugOrId}`;
+      const query = [searchPart, catPart].filter(Boolean).join('&');
+      router.push(`/products${query ? `?${query}` : ''}`);
+    } else {
+      setSelectedGroup(null);
+      handleCategorySelect(null);
+    }
+  };
+
   const handleLoadMore = () => {
     const nextPage = page + 1;
     setPage(nextPage);
@@ -209,31 +267,91 @@ function ProductsContent() {
 
           <div className="w-full h-px bg-gray-100" />
 
-          {/* Category Tabs list */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none text-xs flex-row-reverse">
-            <button
-              onClick={() => handleCategorySelect(null)}
-              className={`px-4 py-2 rounded-lg font-bold border transition-all whitespace-nowrap cursor-pointer ${
-                selectedCategory === null
-                  ? 'bg-primary text-white border-primary shadow-xs'
-                  : 'bg-gray-50 text-gray-550 border-gray-200 hover:bg-gray-100'
-              }`}
-            >
-              الكل
-            </button>
-            {categories.map((cat) => (
+          {/* Category Groups & Independent Categories Tabs list */}
+          <div className="space-y-3">
+            {/* Main Tabs Row */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none text-xs flex-row-reverse">
               <button
-                key={cat.id}
-                onClick={() => handleCategorySelect(cat.id)}
+                onClick={() => handleGroupSelect(null)}
                 className={`px-4 py-2 rounded-lg font-bold border transition-all whitespace-nowrap cursor-pointer ${
-                  selectedCategory === cat.id || selectedCategory === cat.slug
+                  selectedCategory === null
                     ? 'bg-primary text-white border-primary shadow-xs'
                     : 'bg-gray-50 text-gray-550 border-gray-200 hover:bg-gray-100'
                 }`}
               >
-                {cat.name}
+                الكل
               </button>
-            ))}
+
+              {/* Group Tabs */}
+              {categoryGroups.map((group) => {
+                const isActive = selectedGroup === group.id;
+                return (
+                  <button
+                    key={group.id}
+                    onClick={() => handleGroupSelect(group.id)}
+                    className={`px-4 py-2 rounded-lg font-bold border transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                      isActive
+                        ? 'bg-primary text-white border-primary shadow-xs'
+                        : 'bg-gray-50 text-gray-550 border-gray-200 hover:bg-gray-100'
+                    }`}
+                  >
+                    <span>{group.name}</span>
+                    <span className="text-[10px] opacity-80">📁</span>
+                  </button>
+                );
+              })}
+
+              {/* Standalone Categories (not belonging to any group) */}
+              {categories.filter(cat => !cat.group_id).map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => { setSelectedGroup(null); handleCategorySelect(cat.id); }}
+                  className={`px-4 py-2 rounded-lg font-bold border transition-all whitespace-nowrap cursor-pointer ${
+                    (selectedCategory === cat.id || selectedCategory === cat.slug) && !selectedGroup
+                      ? 'bg-primary text-white border-primary shadow-xs'
+                      : 'bg-gray-550 text-gray-550 border-gray-200 hover:bg-gray-100'
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
+
+            {/* Sub-categories Row (Visible only when a group is selected) */}
+            {selectedGroup && (
+              <div className="bg-slate-50 border border-slate-100 rounded-xl p-2.5 animate-in slide-in-from-top-1 duration-200">
+                <div className="flex items-center gap-2 overflow-x-auto scrollbar-none text-[10px] flex-row-reverse">
+                  <span className="text-slate-400 font-bold ml-2">الأقسام الفرعية:</span>
+                  <button
+                    onClick={() => {
+                      const slugOrId = `group:${selectedGroup}`;
+                      setSelectedCategory(slugOrId);
+                      router.push(`/products?category=${slugOrId}${searchVal ? `&search=${encodeURIComponent(searchVal)}` : ''}`);
+                    }}
+                    className={`px-3 py-1.5 rounded-md font-extrabold border transition-all whitespace-nowrap cursor-pointer ${
+                      selectedCategory === `group:${selectedGroup}`
+                        ? 'bg-primary text-white border-primary shadow-2xs'
+                        : 'bg-white text-slate-650 border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    الكل في هذه المجموعة
+                  </button>
+                  {categories.filter(cat => cat.group_id === selectedGroup).map((cat) => (
+                    <button
+                      key={cat.id}
+                      onClick={() => handleCategorySelect(cat.id)}
+                      className={`px-3 py-1.5 rounded-md font-extrabold border transition-all whitespace-nowrap cursor-pointer ${
+                        selectedCategory === cat.id || selectedCategory === cat.slug
+                          ? 'bg-primary text-white border-primary shadow-2xs'
+                          : 'bg-white text-slate-650 border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      {cat.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
         </div>

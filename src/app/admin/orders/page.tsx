@@ -6,7 +6,7 @@ import { useCart } from '@/context/CartContext';
 import Navbar from '@/components/Navbar';
 import { supabase } from '@/lib/supabase';
 import { confirmUserByPhone } from '@/lib/authHelper';
-import { Order, Product, Category, Banner, Coupon } from '@/types';
+import { Order, Product, Category, CategoryGroup, Banner, Coupon } from '@/types';
 import { 
   ShieldAlert, 
   Clock, 
@@ -103,6 +103,14 @@ function AdminOrdersContent() {
   const [catName, setCatName] = useState('');
   const [catSlug, setCatSlug] = useState('');
   const [catImageUrl, setCatImageUrl] = useState('');
+  
+  // Category Groups States
+  const [categoryGroups, setCategoryGroups] = useState<CategoryGroup[]>([]);
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<CategoryGroup | null>(null);
+  const [groupName, setGroupName] = useState('');
+  const [groupSlug, setGroupSlug] = useState('');
+  const [catGroupId, setCatGroupId] = useState('');
 
   // 1. Synthesize pleasant double bell sound using browser's Web Audio API
   const triggerAudioAlert = () => {
@@ -229,6 +237,19 @@ function AdminOrdersContent() {
 
       if (catErr) throw catErr;
       setCategories(catData as Category[] || []);
+
+      // Load Category Groups
+      try {
+        const { data: groupData, error: groupErr } = await supabase
+          .from('category_groups')
+          .select('*')
+          .order('name', { ascending: true });
+        if (!groupErr) {
+          setCategoryGroups((groupData as CategoryGroup[]) || []);
+        }
+      } catch (groupError) {
+        console.warn('Category groups table not found yet. Using fallback.', groupError);
+      }
 
       // Load Products (first 1000)
       await fetchProductsBatch(0, false);
@@ -536,10 +557,12 @@ function AdminOrdersContent() {
       setCatName(cat.name);
       setCatSlug(cat.slug);
       setCatImageUrl(cat.image_url || '');
+      setCatGroupId(cat.group_id || '');
     } else {
       setCatName('');
       setCatSlug('');
       setCatImageUrl('');
+      setCatGroupId('');
     }
     setShowCategoryModal(true);
   };
@@ -558,7 +581,8 @@ function AdminOrdersContent() {
       const payload = {
         name: catName.trim(),
         slug: catSlug.trim().toLowerCase(),
-        image_url: catImageUrl.trim() || null
+        image_url: catImageUrl.trim() || null,
+        group_id: catGroupId || null
       };
 
       if (editingCategory) {
@@ -604,6 +628,82 @@ function AdminOrdersContent() {
     } catch (err: any) {
       console.error('Error deleting category:', err);
       addLog(`❌ فشل حذف التصنيف: ${err.message}`);
+    }
+  };
+
+  // Category Groups CRUD Handlers
+  const openGroupForm = (group: CategoryGroup | null) => {
+    setEditingGroup(group);
+    setModalError(null);
+    if (group) {
+      setGroupName(group.name);
+      setGroupSlug(group.slug);
+    } else {
+      setGroupName('');
+      setGroupSlug('');
+    }
+    setShowGroupModal(true);
+  };
+
+  const handleSaveGroup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!groupName.trim() || !groupSlug.trim()) {
+      setModalError('الرجاء إدخال اسم ورابط المجموعة.');
+      return;
+    }
+
+    try {
+      setSaveLoading(true);
+      setModalError(null);
+
+      const payload = {
+        name: groupName.trim(),
+        slug: groupSlug.trim().toLowerCase()
+      };
+
+      if (editingGroup) {
+        // Edit Group
+        const { error } = await supabase
+          .from('category_groups')
+          .update(payload)
+          .eq('id', editingGroup.id);
+
+        if (error) throw error;
+        addLog(`✓ تم تعديل مجموعة التصنيفات بنجاح: ${payload.name}`);
+      } else {
+        // Create Group
+        const { error } = await supabase
+          .from('category_groups')
+          .insert(payload);
+
+        if (error) throw error;
+        addLog(`✓ تم إضافة مجموعة تصنيفات جديدة بنجاح: ${payload.name}`);
+      }
+
+      setShowGroupModal(false);
+      fetchData();
+    } catch (err: any) {
+      console.error('Error saving category group:', err);
+      setModalError(err.message || 'حدث خطأ أثناء الحفظ.');
+    } finally {
+      setSaveLoading(false);
+    }
+  };
+
+  const handleDeleteGroup = async (id: string, name: string) => {
+    if (!window.confirm(`هل أنت متأكد من حذف مجموعة التصنيفات: "${name}"؟ التصنيفات التابعة لها ستفقد ارتباطها.`)) return;
+    try {
+      const { error } = await supabase
+        .from('category_groups')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      addLog(`✓ تم حذف مجموعة التصنيفات: ${name}`);
+      fetchData();
+    } catch (err: any) {
+      console.error('Error deleting category group:', err);
+      addLog(`❌ فشل حذف مجموعة التصنيفات: ${err.message}`);
     }
   };
 
@@ -1300,66 +1400,159 @@ function AdminOrdersContent() {
           </div>
         )}
 
-        {/* Tab 3 Content: Categories CRUD */}
+        {/* Tab 3 Content: Categories & Groups CRUD */}
         {activeTab === 'categories' && (
-          <div className="space-y-6">
-            <div>
-              <button
-                onClick={() => openCategoryForm(null)}
-                className="bg-primary hover:bg-primary-dark text-white font-extrabold text-xs px-5 py-2.5 rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer self-stretch sm:self-auto justify-center"
-              >
-                <Plus size={14} />
-                إضافة قسم تصنيف جديد
-              </button>
+          <div className="space-y-10">
+            
+            {/* --- SECTION 1: CATEGORY GROUPS --- */}
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                <div className="text-right">
+                  <h3 className="font-black text-slate-900 text-sm">مجموعات التصنيفات (Category Groups)</h3>
+                  <p className="text-[10px] text-slate-400 font-bold mt-0.5">تتيح لك تجميع عدة أقسام تصنيفية (مثل المشروبات الباردة والساخنة) تحت مظلة واحدة (مثل المشروبات)</p>
+                </div>
+                <button
+                  onClick={() => openGroupForm(null)}
+                  className="bg-primary hover:bg-primary-dark text-white font-extrabold text-xs px-5 py-2.5 rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer justify-center self-stretch sm:self-auto"
+                >
+                  <Plus size={14} />
+                  إضافة مجموعة جديدة
+                </button>
+              </div>
+
+              {loading ? (
+                <div className="py-10 text-center">
+                  <Loader2 className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin mx-auto text-primary" />
+                </div>
+              ) : categoryGroups.length === 0 ? (
+                <div className="bg-white border border-slate-150 rounded-3xl p-8 text-center shadow-xs">
+                  <p className="text-slate-500 font-bold text-xs">لا توجد أي مجموعات تصنيفية مسجلة بعد.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {categoryGroups.map((group) => {
+                    const subCats = categories.filter(c => c.group_id === group.id);
+                    return (
+                      <div key={group.id} className="bg-white border border-slate-150 rounded-3xl p-5 shadow-xs flex flex-col justify-between gap-4">
+                        <div className="flex justify-between items-start">
+                          <div className="text-right space-y-1">
+                            <h4 className="font-black text-slate-900 text-xs">{group.name}</h4>
+                            <p className="text-[9px] text-slate-400 font-bold">Slug: {group.slug}</p>
+                            <p className="text-[9px] text-primary font-bold">يحتوي على: {subCats.length} تصنيفات</p>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => openGroupForm(group)}
+                              className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg cursor-pointer"
+                              title="تعديل المجموعة"
+                            >
+                              <Edit size={12} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteGroup(group.id, group.name)}
+                              className="p-1.5 bg-red-50 hover:bg-red-100 text-red-650 rounded-lg cursor-pointer"
+                              title="حذف المجموعة"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* List of subcategories tags */}
+                        {subCats.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 justify-end">
+                            {subCats.map(c => (
+                              <span key={c.id} className="text-[8px] bg-slate-50 text-slate-600 px-2 py-0.5 rounded-md font-bold border border-slate-100">
+                                {c.name}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            {loading ? (
-              <div className="py-20 text-center space-y-4">
-                <Loader2 className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto text-primary" />
-                <p className="text-xs text-slate-500 font-bold">جاري تحميل التصنيفات...</p>
+            {/* --- SECTION 2: CATEGORIES --- */}
+            <div className="space-y-4 pt-4 border-t border-slate-100">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="text-right">
+                  <h3 className="font-black text-slate-900 text-sm">أقسام التصنيفات (Categories)</h3>
+                  <p className="text-[10px] text-slate-400 font-bold mt-0.5">إدارة أقسام المنتجات وربطها بالمجموعات أعلاه</p>
+                </div>
+                <button
+                  onClick={() => openCategoryForm(null)}
+                  className="bg-primary hover:bg-primary-dark text-white font-extrabold text-xs px-5 py-2.5 rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer justify-center self-stretch sm:self-auto"
+                >
+                  <Plus size={14} />
+                  إضافة قسم تصنيف جديد
+                </button>
               </div>
-            ) : categories.length === 0 ? (
-              <div className="bg-white border border-slate-150 rounded-3xl p-12 text-center shadow-xs">
-                <p className="text-slate-500 font-bold text-xs">لا توجد أي تصنيفات مسجلة في كتالوج المتجر بعد.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {categories.map((cat) => (
-                  <div key={cat.id} className="bg-white border border-slate-150 rounded-3xl p-5 shadow-xs flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full overflow-hidden border border-slate-200 flex-shrink-0 bg-slate-50 p-0.5">
-                        <img 
-                          src={cat.image_url || 'https://images.unsplash.com/photo-1534482421-64566f976cfa?w=100'} 
-                          alt={cat.name} 
-                          className="w-full h-full object-cover rounded-full" 
-                        />
-                      </div>
-                      <div className="text-right">
-                        <h4 className="font-black text-slate-900 text-xs">{cat.name}</h4>
-                        <p className="text-[10px] text-slate-400 font-bold mt-0.5">Slug: {cat.slug}</p>
-                      </div>
-                    </div>
 
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => openCategoryForm(cat)}
-                        className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg cursor-pointer"
-                        title="تعديل"
-                      >
-                        <Edit size={12} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteCategory(cat.id, cat.name)}
-                        className="p-1.5 bg-red-50 hover:bg-red-100 text-red-650 rounded-lg cursor-pointer"
-                        title="حذف"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+              {loading ? (
+                <div className="py-20 text-center space-y-4">
+                  <Loader2 className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto text-primary" />
+                  <p className="text-xs text-slate-500 font-bold">جاري تحميل التصنيفات...</p>
+                </div>
+              ) : categories.length === 0 ? (
+                <div className="bg-white border border-slate-150 rounded-3xl p-12 text-center shadow-xs">
+                  <p className="text-slate-500 font-bold text-xs">لا توجد أي تصنيفات مسجلة في كتالوج المتجر بعد.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {categories.map((cat) => {
+                    const group = categoryGroups.find(g => g.id === cat.group_id);
+                    return (
+                      <div key={cat.id} className="bg-white border border-slate-150 rounded-3xl p-5 shadow-xs flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full overflow-hidden border border-slate-200 flex-shrink-0 bg-slate-50 p-0.5">
+                            <img 
+                              src={cat.image_url || 'https://images.unsplash.com/photo-1534482421-64566f976cfa?w=100'} 
+                              alt={cat.name} 
+                              className="w-full h-full object-cover rounded-full" 
+                            />
+                          </div>
+                          <div className="text-right space-y-0.5">
+                            <h4 className="font-black text-slate-900 text-xs">{cat.name}</h4>
+                            <p className="text-[9px] text-slate-400 font-bold">Slug: {cat.slug}</p>
+                            {group ? (
+                              <span className="inline-block text-[8px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-black">
+                                {group.name}
+                              </span>
+                            ) : (
+                              <span className="inline-block text-[8px] bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full font-bold">
+                                بدون مجموعة
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => openCategoryForm(cat)}
+                            className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg cursor-pointer"
+                            title="تعديل"
+                          >
+                            <Edit size={12} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteCategory(cat.id, cat.name)}
+                            className="p-1.5 bg-red-50 hover:bg-red-100 text-red-650 rounded-lg cursor-pointer"
+                            title="حذف"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
           </div>
         )}
 
@@ -2067,6 +2260,22 @@ CREATE POLICY "Admin Delete Storage" ON storage.objects FOR DELETE USING (bucket
                 />
               </div>
 
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">المجموعة التابع لها (اختياري)</label>
+                <select
+                  value={catGroupId}
+                  onChange={(e) => setCatGroupId(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 focus:outline-none focus:ring-1 focus:ring-primary text-slate-900 font-bold"
+                >
+                  <option value="">-- بدون مجموعة (مستقل) --</option>
+                  {categoryGroups.map((group) => (
+                    <option key={group.id} value={group.id}>
+                      {group.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="flex gap-2.5 pt-2">
                 <button
                   type="button"
@@ -2081,6 +2290,72 @@ CREATE POLICY "Admin Delete Storage" ON storage.objects FOR DELETE USING (bucket
                   className="flex-1 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   {saveLoading ? <Loader2 size={12} className="animate-spin" /> : 'حفظ التصنيف'}
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Category Group CRUD Modal Popup */}
+      {showGroupModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div onClick={() => setShowGroupModal(false)} className="absolute inset-0 bg-slate-950/40 backdrop-blur-xs" />
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-sm w-full relative z-10 shadow-2xl space-y-4">
+            
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <button onClick={() => setShowGroupModal(false)} className="text-slate-400 hover:text-slate-800 transition-colors">
+                <X size={18} />
+              </button>
+              <h3 className="font-black text-sm text-slate-900">
+                {editingGroup ? 'تعديل مجموعة تصنيفات' : 'إضافة مجموعة تصنيفات جديدة'}
+              </h3>
+            </div>
+
+            {modalError && (
+              <p className="text-[10px] bg-red-50 text-red-650 font-bold p-2.5 rounded-lg border border-red-100 text-right">{modalError}</p>
+            )}
+
+            <form onSubmit={handleSaveGroup} className="space-y-4 text-right text-xs">
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">اسم المجموعة *</label>
+                <input
+                  type="text"
+                  required
+                  value={groupName}
+                  onChange={(e) => setGroupName(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 focus:outline-none focus:ring-1 focus:ring-primary text-slate-900 font-bold"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">الرابط الفرعي للمجموعة (Slug) *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="مثال: drinks, dairy"
+                  value={groupSlug}
+                  onChange={(e) => setGroupSlug(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 focus:outline-none focus:ring-1 focus:ring-primary text-slate-900 text-left"
+                />
+              </div>
+
+              <div className="flex gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowGroupModal(false)}
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-all cursor-pointer text-center"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  disabled={saveLoading}
+                  className="flex-1 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-extrabold transition-all cursor-pointer text-center flex items-center justify-center gap-1.5"
+                >
+                  {saveLoading && <Loader2 className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                  حفظ
                 </button>
               </div>
 

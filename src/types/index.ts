@@ -8,6 +8,13 @@ export interface Profile {
   created_at: string;
 }
 
+export interface CategoryGroup {
+  id: string;
+  name: string;
+  slug: string;
+  created_at: string;
+}
+
 export interface Category {
   id: string;
   name: string;
@@ -15,6 +22,7 @@ export interface Category {
   image_url: string;
   created_at: string;
   importance_score?: number;
+  group_id?: string | null;
 }
 
 export interface Product {
