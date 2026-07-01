@@ -111,6 +111,8 @@ function AdminOrdersContent() {
   const [groupName, setGroupName] = useState('');
   const [groupSlug, setGroupSlug] = useState('');
   const [catGroupId, setCatGroupId] = useState('');
+  const [selectedGroupCategoryIds, setSelectedGroupCategoryIds] = useState<string[]>([]);
+  const [groupSearchQuery, setGroupSearchQuery] = useState('');
 
   // 1. Synthesize pleasant double bell sound using browser's Web Audio API
   const triggerAudioAlert = () => {
@@ -638,10 +640,15 @@ function AdminOrdersContent() {
     if (group) {
       setGroupName(group.name);
       setGroupSlug(group.slug);
+      // Fetch currently associated category IDs
+      const associatedIds = categories.filter(c => c.group_id === group.id).map(c => c.id);
+      setSelectedGroupCategoryIds(associatedIds);
     } else {
       setGroupName('');
       setGroupSlug('');
+      setSelectedGroupCategoryIds([]);
     }
+    setGroupSearchQuery('');
     setShowGroupModal(true);
   };
 
@@ -661,23 +668,53 @@ function AdminOrdersContent() {
         slug: groupSlug.trim().toLowerCase()
       };
 
+      let groupId = '';
+
       if (editingGroup) {
+        groupId = editingGroup.id;
         // Edit Group
         const { error } = await supabase
           .from('category_groups')
           .update(payload)
-          .eq('id', editingGroup.id);
+          .eq('id', groupId);
 
         if (error) throw error;
         addLog(`✓ تم تعديل مجموعة التصنيفات بنجاح: ${payload.name}`);
       } else {
         // Create Group
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('category_groups')
-          .insert(payload);
+          .insert(payload)
+          .select('id')
+          .single();
 
         if (error) throw error;
+        groupId = data.id;
         addLog(`✓ تم إضافة مجموعة تصنيفات جديدة بنجاح: ${payload.name}`);
+      }
+
+      // Bulk Update Categories:
+      // 1. Remove group_id from categories previously linked to this group but now deselected
+      const previouslyAssociatedIds = editingGroup 
+        ? categories.filter(c => c.group_id === groupId).map(c => c.id)
+        : [];
+      const deselectedIds = previouslyAssociatedIds.filter(id => !selectedGroupCategoryIds.includes(id));
+      
+      if (deselectedIds.length > 0) {
+        const { error: clearErr } = await supabase
+          .from('categories')
+          .update({ group_id: null })
+          .in('id', deselectedIds);
+        if (clearErr) throw clearErr;
+      }
+
+      // 2. Assign group_id to categories that are selected
+      if (selectedGroupCategoryIds.length > 0) {
+        const { error: assignErr } = await supabase
+          .from('categories')
+          .update({ group_id: groupId })
+          .in('id', selectedGroupCategoryIds);
+        if (assignErr) throw assignErr;
       }
 
       setShowGroupModal(false);
@@ -2299,70 +2336,143 @@ CREATE POLICY "Admin Delete Storage" ON storage.objects FOR DELETE USING (bucket
       )}
 
       {/* Category Group CRUD Modal Popup */}
-      {showGroupModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div onClick={() => setShowGroupModal(false)} className="absolute inset-0 bg-slate-950/40 backdrop-blur-xs" />
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-sm w-full relative z-10 shadow-2xl space-y-4">
-            
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <button onClick={() => setShowGroupModal(false)} className="text-slate-400 hover:text-slate-800 transition-colors">
-                <X size={18} />
-              </button>
-              <h3 className="font-black text-sm text-slate-900">
-                {editingGroup ? 'تعديل مجموعة تصنيفات' : 'إضافة مجموعة تصنيفات جديدة'}
-              </h3>
+      {showGroupModal && (() => {
+        const filteredCategories = categories.filter(cat => 
+          cat.name.toLowerCase().includes(groupSearchQuery.toLowerCase())
+        );
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div onClick={() => setShowGroupModal(false)} className="absolute inset-0 bg-slate-950/40 backdrop-blur-xs" />
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-md w-full relative z-10 shadow-2xl space-y-4">
+              
+              <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                <button onClick={() => setShowGroupModal(false)} className="text-slate-400 hover:text-slate-800 transition-colors">
+                  <X size={18} />
+                </button>
+                <h3 className="font-black text-sm text-slate-900">
+                  {editingGroup ? 'تعديل مجموعة تصنيفات' : 'إضافة مجموعة تصنيفات جديدة'}
+                </h3>
+              </div>
+
+              {modalError && (
+                <p className="text-[10px] bg-red-50 text-red-650 font-bold p-2.5 rounded-lg border border-red-100 text-right">{modalError}</p>
+              )}
+
+              <form onSubmit={handleSaveGroup} className="space-y-4 text-right text-xs">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">اسم المجموعة *</label>
+                  <input
+                    type="text"
+                    required
+                    value={groupName}
+                    onChange={(e) => setGroupName(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 focus:outline-none focus:ring-1 focus:ring-primary text-slate-900 font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">الرابط الفرعي للمجموعة (Slug) *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="مثال: drinks, dairy"
+                    value={groupSlug}
+                    onChange={(e) => setGroupSlug(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 focus:outline-none focus:ring-1 focus:ring-primary text-slate-900 text-left"
+                  />
+                </div>
+
+                <div className="space-y-2 border-t border-slate-100 pt-3">
+                  <div className="flex justify-between items-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const allVisibleIds = filteredCategories.map(c => c.id);
+                        const allSelected = allVisibleIds.every(id => selectedGroupCategoryIds.includes(id));
+                        if (allSelected) {
+                          setSelectedGroupCategoryIds(prev => prev.filter(id => !allVisibleIds.includes(id)));
+                        } else {
+                          setSelectedGroupCategoryIds(prev => Array.from(new Set([...prev, ...allVisibleIds])));
+                        }
+                      }}
+                      className="text-[10px] text-primary font-black hover:underline cursor-pointer"
+                    >
+                      تحديد الكل / إلغاء التحديد
+                    </button>
+                    <label className="font-bold text-slate-700 block">التصنيفات التابعة لهذه المجموعة</label>
+                  </div>
+                  
+                  <input
+                    type="text"
+                    placeholder="ابحث عن تصنيف لتحديده..."
+                    value={groupSearchQuery}
+                    onChange={(e) => setGroupSearchQuery(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-primary text-right font-semibold"
+                  />
+
+                  <div className="max-h-40 overflow-y-auto border border-slate-100 rounded-xl p-2.5 bg-slate-50/50 space-y-1.5 scrollbar-thin text-right">
+                    {filteredCategories.length === 0 ? (
+                      <p className="text-[10px] text-slate-400 font-bold text-center py-4">لا توجد تصنيفات مطابقة للبحث.</p>
+                    ) : (
+                      filteredCategories.map((cat) => {
+                        const isChecked = selectedGroupCategoryIds.includes(cat.id);
+                        const otherGroup = cat.group_id && cat.group_id !== editingGroup?.id 
+                          ? categoryGroups.find(g => g.id === cat.group_id)?.name 
+                          : null;
+                          
+                        return (
+                          <label 
+                            key={cat.id} 
+                            className="flex items-center justify-between gap-2 p-1.5 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors"
+                          >
+                            <span className="text-[10px] text-slate-400 font-bold">
+                              {otherGroup ? `(مرتبط بـ: ${otherGroup})` : ''}
+                            </span>
+                            <div className="flex items-center gap-2 flex-row-reverse">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => {
+                                  if (isChecked) {
+                                    setSelectedGroupCategoryIds(prev => prev.filter(id => id !== cat.id));
+                                  } else {
+                                    setSelectedGroupCategoryIds(prev => [...prev, cat.id]);
+                                  }
+                                }}
+                                className="accent-primary w-3.5 h-3.5 cursor-pointer"
+                              />
+                              <span className="font-bold text-slate-800 text-[11px]">{cat.name}</span>
+                            </div>
+                          </label>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex gap-2.5 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowGroupModal(false)}
+                    className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-all cursor-pointer text-center"
+                  >
+                    إلغاء
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saveLoading}
+                    className="flex-1 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-extrabold transition-all cursor-pointer text-center flex items-center justify-center gap-1.5"
+                  >
+                    {saveLoading && <Loader2 className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                    حفظ
+                  </button>
+                </div>
+
+              </form>
             </div>
-
-            {modalError && (
-              <p className="text-[10px] bg-red-50 text-red-650 font-bold p-2.5 rounded-lg border border-red-100 text-right">{modalError}</p>
-            )}
-
-            <form onSubmit={handleSaveGroup} className="space-y-4 text-right text-xs">
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700 block">اسم المجموعة *</label>
-                <input
-                  type="text"
-                  required
-                  value={groupName}
-                  onChange={(e) => setGroupName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 focus:outline-none focus:ring-1 focus:ring-primary text-slate-900 font-bold"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700 block">الرابط الفرعي للمجموعة (Slug) *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="مثال: drinks, dairy"
-                  value={groupSlug}
-                  onChange={(e) => setGroupSlug(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 focus:outline-none focus:ring-1 focus:ring-primary text-slate-900 text-left"
-                />
-              </div>
-
-              <div className="flex gap-2.5 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowGroupModal(false)}
-                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-all cursor-pointer text-center"
-                >
-                  إلغاء
-                </button>
-                <button
-                  type="submit"
-                  disabled={saveLoading}
-                  className="flex-1 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-extrabold transition-all cursor-pointer text-center flex items-center justify-center gap-1.5"
-                >
-                  {saveLoading && <Loader2 className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-                  حفظ
-                </button>
-              </div>
-
-            </form>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
     </div>
   );
