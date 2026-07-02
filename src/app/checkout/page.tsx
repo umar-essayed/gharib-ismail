@@ -66,15 +66,36 @@ function CheckoutContent() {
   const [threshold, setThreshold] = useState(800);
 
   useEffect(() => {
-    fetch('/ecom_config.json')
-      .then((r) => r.json())
-      .then((data) => {
-        if (data) {
-          if (data.shipping_fee !== undefined) setShippingFee(Number(data.shipping_fee));
-          if (data.free_shipping_threshold !== undefined) setThreshold(Number(data.free_shipping_threshold));
+    async function loadConfig() {
+      try {
+        const { data: settingsData } = await supabase
+          .from('pos_settings')
+          .select('key, value');
+        
+        if (settingsData && settingsData.length > 0) {
+          const feeSetting = settingsData.find(s => s.key === 'ecom_shipping_fee');
+          const thresholdSetting = settingsData.find(s => s.key === 'ecom_free_shipping_threshold');
+          
+          if (feeSetting) setShippingFee(Number(feeSetting.value));
+          if (thresholdSetting) setThreshold(Number(thresholdSetting.value));
+          return;
         }
-      })
-      .catch(() => {});
+      } catch (err) {
+        console.warn('Failed to load shipping config from pos_settings:', err);
+      }
+      
+      // Fallback
+      fetch('/ecom_config.json')
+        .then((r) => r.json())
+        .then((data) => {
+          if (data) {
+            if (data.shipping_fee !== undefined) setShippingFee(Number(data.shipping_fee));
+            if (data.free_shipping_threshold !== undefined) setThreshold(Number(data.free_shipping_threshold));
+          }
+        })
+        .catch(() => {});
+    }
+    loadConfig();
   }, []);
 
   useEffect(() => {
@@ -84,21 +105,11 @@ function CheckoutContent() {
           .from('coupons')
           .select('*')
           .eq('is_active', true);
-        if (data && data.length > 0) {
-          setCoupons(data as Coupon[]);
-        } else {
-          setCoupons([
-            { code: 'ARZ15', description: 'خصم 15% على إجمالي السلة', discount_type: 'percentage', discount_value: 15, min_order_amount: 0, points_cost: 0, is_active: true },
-            { code: 'GHARIB50', description: 'خصم بقيمة 50 جنيه للطلبات بقيمة 300 جنيه أو أكثر', discount_type: 'fixed', discount_value: 50, min_order_amount: 300, points_cost: 0, is_active: true },
-            { code: 'POINTS100', description: 'خصم بقيمة 100 جنيه مقابل 100 نقطة ذهبية من رصيدك', discount_type: 'points', discount_value: 100, min_order_amount: 0, points_cost: 100, is_active: true }
-          ]);
-        }
+        if (error) throw error;
+        setCoupons((data as Coupon[]) || []);
       } catch (err) {
-        setCoupons([
-          { code: 'ARZ15', description: 'خصم 15% على إجمالي السلة', discount_type: 'percentage', discount_value: 15, min_order_amount: 0, points_cost: 0, is_active: true },
-          { code: 'GHARIB50', description: 'خصم بقيمة 50 جنيه للطلبات بقيمة 300 جنيه أو أكثر', discount_type: 'fixed', discount_value: 50, min_order_amount: 300, points_cost: 0, is_active: true },
-          { code: 'POINTS100', description: 'خصم بقيمة 100 جنيه مقابل 100 نقطة ذهبية من رصيدك', discount_type: 'points', discount_value: 100, min_order_amount: 0, points_cost: 100, is_active: true }
-        ]);
+        console.error('Failed to fetch coupons:', err);
+        setCoupons([]);
       }
     }
     fetchCoupons();
@@ -149,8 +160,11 @@ function CheckoutContent() {
   const activeShippingFee = isFreeShipping ? 0 : zonePrice;
   const finalTotal = Math.max(0, subtotal - activeDiscount + activeShippingFee);
 
-  // 1. Prefill details if profile exists
+  // 1. Prefill details if profile exists, or load from localStorage for guests
   useEffect(() => {
+    // Guest checkout is the default step
+    setCheckoutStep('address');
+
     if (profile) {
       setFullName(profile.full_name || '');
       setPhone(profile.phone || '');
@@ -173,31 +187,70 @@ function CheckoutContent() {
       }
       setSelectedRegion(matchedRegion);
       setDetailedAddress(details);
-
-      setCheckoutStep('address');
-      loadPastOrders(profile.id);
     } else {
-      setCheckoutStep('auth');
-      setAuthTab('login');
-      setPastOrders([]);
-    }
-  }, [profile]);
+      // Guest prefill
+      try {
+        const savedName = localStorage.getItem('guest_name') || '';
+        const savedPhone = localStorage.getItem('guest_phone') || '';
+        const savedRegion = localStorage.getItem('guest_region') || '';
+        const savedAddress = localStorage.getItem('guest_address') || '';
 
-  // Load past orders for logged in customer
-  const loadPastOrders = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
-      if (data) {
-        setPastOrders(data as Order[]);
+        if (savedName) setFullName(savedName);
+        if (savedPhone) setPhone(savedPhone);
+        if (savedRegion) {
+          if (shippingZones.some(z => z.name === savedRegion)) {
+            setSelectedRegion(savedRegion);
+          }
+        }
+        if (savedAddress) setDetailedAddress(savedAddress);
+      } catch (err) {
+        console.warn('Failed to restore guest checkout details:', err);
       }
-    } catch (err) {
-      console.error('Error loading past orders:', err);
     }
-  };
+  }, [profile, shippingZones]);
+
+  // Load past orders (profile orders + guest orders from localStorage)
+  useEffect(() => {
+    async function fetchOrders() {
+      let combinedOrders: Order[] = [];
+
+      // A. Fetch from Supabase if logged in
+      if (profile) {
+        try {
+          const { data, error } = await supabase
+            .from('orders')
+            .select('*')
+            .eq('user_id', profile.id)
+            .order('created_at', { ascending: false });
+          if (data && !error) {
+            combinedOrders = [...data as Order[]];
+          }
+        } catch (err) {
+          console.error('Error fetching db orders:', err);
+        }
+      }
+
+      // B. Fetch from localStorage for guest orders
+      try {
+        const guestOrdersStr = localStorage.getItem('guest_orders');
+        if (guestOrdersStr) {
+          const guestOrders = JSON.parse(guestOrdersStr) as Order[];
+          // Merge avoiding duplicate IDs
+          const merged = [...combinedOrders, ...guestOrders];
+          const unique = merged.filter((o, idx, self) => self.findIndex(x => x.id === o.id) === idx);
+          combinedOrders = unique;
+        }
+      } catch (err) {
+        console.warn('Failed to read guest orders from localStorage:', err);
+      }
+
+      // Sort by date descending
+      combinedOrders.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      setPastOrders(combinedOrders);
+    }
+
+    fetchOrders();
+  }, [profile]);
 
   // Protect page from empty cart
   useEffect(() => {
@@ -380,7 +433,9 @@ function CheckoutContent() {
           delivery_address: combinedAddress,
           delivery_phone: phone,
           payment_method: paymentMethod,
-          user_id: profile?.id || null
+          user_id: profile?.id || null,
+          coupon_code: selectedCoupon,
+          selected_region: selectedRegion
         })
       });
 
@@ -435,6 +490,34 @@ function CheckoutContent() {
         } catch (couponErr) {
           console.warn('Could not update coupon usage count:', couponErr);
         }
+      }
+
+      // 3.8. Save guest info and order to localStorage
+      try {
+        localStorage.setItem('guest_name', fullName.trim());
+        localStorage.setItem('guest_phone', phone.trim());
+        localStorage.setItem('guest_region', selectedRegion);
+        localStorage.setItem('guest_address', detailedAddress.trim());
+
+        if (!localStorage.getItem('guest_token')) {
+          const guestToken = 'guest_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+          localStorage.setItem('guest_token', guestToken);
+        }
+
+        const localOrdersStr = localStorage.getItem('guest_orders');
+        const existingLocalOrders = localOrdersStr ? JSON.parse(localOrdersStr) : [];
+        const newLocalOrder = {
+          id: orderId,
+          created_at: new Date().toISOString(),
+          items: orderItems,
+          total_price: finalTotal,
+          delivery_address: combinedAddress,
+          delivery_phone: phone,
+          status: 'pending' as Order['status']
+        };
+        localStorage.setItem('guest_orders', JSON.stringify([newLocalOrder, ...existingLocalOrders]));
+      } catch (storageErr) {
+        console.warn('Failed to save guest order/info in localStorage:', storageErr);
       }
 
       // 4. Update UI State
@@ -559,17 +642,6 @@ function CheckoutContent() {
                   >
                     إنشاء حساب
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => { setAuthTab('guest'); setAuthError(null); }}
-                    className={`flex-1 py-2.5 rounded-xl font-bold text-[11px] sm:text-xs transition-all duration-300 cursor-pointer ${
-                      authTab === 'guest' 
-                        ? 'bg-white text-primary shadow-xs' 
-                        : 'text-gray-500 hover:text-gray-800'
-                    }`}
-                  >
-                    الشراء كزائر
-                  </button>
                 </div>
 
                 {authTab === 'login' && (
@@ -678,47 +750,15 @@ function CheckoutContent() {
                   </form>
                 )}
 
-                {authTab === 'guest' && (
-                  <form onSubmit={handleGuestSubmit} className="space-y-4 text-right">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-gray-700 flex items-center gap-1.5 justify-end">
-                        الاسم بالكامل *
-                        <User size={14} className="text-primary" />
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="اكتب الاسم بالكامل للتسليم الفوري"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                        className="w-full bg-gray-55 border border-gray-250 rounded-xl px-4 py-2.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-primary focus:bg-white text-gray-900 transition-all"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-gray-700 flex items-center gap-1.5 justify-end">
-                        رقم الهاتف للتواصل *
-                        <Phone size={14} className="text-primary" />
-                      </label>
-                      <input
-                        type="tel"
-                        required
-                        placeholder="أدخل رقم الموبايل الخاص بك"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        className="w-full bg-gray-55 border border-gray-250 rounded-xl px-4 py-2.5 text-xs text-left focus:outline-none focus:ring-1 focus:ring-primary focus:bg-white text-gray-900 transition-all"
-                        dir="ltr"
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      className="w-full py-3 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md hover:shadow-lg font-sans"
-                    >
-                      المتابعة كزائر لإدخال العنوان 🚚
-                    </button>
-                  </form>
-                )}
+                <div className="pt-4 border-t border-slate-100 flex flex-col items-center">
+                  <button
+                    type="button"
+                    onClick={() => setCheckoutStep('address')}
+                    className="text-xs text-primary font-black hover:underline cursor-pointer flex items-center gap-1"
+                  >
+                    <span>الشراء كزائر بدون تسجيل دخول (الافتراضي) ↩</span>
+                  </button>
+                </div>
               </div>
             )}
 
@@ -731,6 +771,25 @@ function CheckoutContent() {
                     <span className="p-1 bg-primary/10 text-primary rounded-lg">📍</span>
                   </h2>
                 </div>
+
+                {!profile && (
+                  <div className="bg-primary/5 border border-primary/15 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-right">
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-black text-slate-900">لديك حساب بالفعل في المتجر؟</p>
+                      <p className="text-[10px] text-gray-500 font-bold">تسجيل الدخول يتيح لك الدفع بالنقاط الذهبية وتتبع طلباتك بشكل أسرع.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCheckoutStep('auth');
+                        setAuthTab('login');
+                      }}
+                      className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-black transition-all cursor-pointer whitespace-nowrap shadow-xs"
+                    >
+                      تسجيل الدخول 🔐
+                    </button>
+                  </div>
+                )}
 
                 <form onSubmit={handleOrderSubmit} className="space-y-5 text-right">
                   {/* Prefilled Profile display */}
@@ -963,8 +1022,8 @@ function CheckoutContent() {
 
         </div>
 
-        {/* 4. Past Orders Dashboard Panel (Visible only when logged in) */}
-        {profile && pastOrders.length > 0 && (
+        {/* 4. Past Orders Dashboard Panel (Visible for both logged in users and guests) */}
+        {pastOrders.length > 0 && (
           <div className="bg-white border border-gray-150 rounded-3xl p-6 sm:p-8 shadow-xs space-y-4 animate-in fade-in duration-200">
             <h3 className="text-sm font-black text-gray-900 border-b border-gray-50 pb-3.5 flex items-center gap-2 justify-end text-right">
               طلباتك السابقة والمحفوظة

@@ -39,11 +39,15 @@ function ProfileContent() {
   const [updating, setUpdating] = useState(false);
   const [msg, setMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
-  // Redirect if not logged in
+  // Redirect if not logged in and has no guest info
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
-        router.push('/auth');
+        const guestName = localStorage.getItem('guest_name');
+        const guestOrders = localStorage.getItem('guest_orders');
+        if (!guestName && !guestOrders) {
+          router.push('/auth');
+        }
       }
     });
   }, [router]);
@@ -55,6 +59,28 @@ function ProfileContent() {
       setPhone(profile.phone || '');
       setAddress(profile.address || '');
       loadOrders(profile.id);
+    } else {
+      // Load guest details from localStorage
+      try {
+        const guestName = localStorage.getItem('guest_name') || '';
+        const guestPhone = localStorage.getItem('guest_phone') || '';
+        const guestAddress = localStorage.getItem('guest_address') || '';
+        const guestRegion = localStorage.getItem('guest_region') || '';
+        
+        setFullName(guestName);
+        setPhone(guestPhone);
+        setAddress(guestRegion ? `${guestRegion}، ${guestAddress}` : guestAddress);
+
+        const guestOrdersStr = localStorage.getItem('guest_orders');
+        if (guestOrdersStr) {
+          setOrders(JSON.parse(guestOrdersStr));
+        } else {
+          setOrders([]);
+        }
+      } catch (err) {
+        console.warn('Failed to load guest profile data:', err);
+      }
+      setLoadingOrders(false);
     }
   }, [profile]);
 
@@ -78,7 +104,6 @@ function ProfileContent() {
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile) return;
     if (!fullName.trim() || !phone.trim() || !address.trim()) {
       setMsg({ type: 'error', text: 'الرجاء ملء جميع البيانات المطلوبة.' });
       return;
@@ -88,19 +113,33 @@ function ProfileContent() {
       setUpdating(true);
       setMsg(null);
 
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          full_name: fullName.trim(),
-          phone: phone.trim(),
-          address: address.trim()
-        })
-        .eq('id', profile.id);
+      if (profile) {
+        const { error } = await supabase
+          .from('profiles')
+          .update({
+            full_name: fullName.trim(),
+            phone: phone.trim(),
+            address: address.trim()
+          })
+          .eq('id', profile.id);
 
-      if (error) throw error;
-
-      setMsg({ type: 'success', text: 'تم تحديث بياناتك بنجاح!' });
-      await refreshProfile();
+        if (error) throw error;
+        setMsg({ type: 'success', text: 'تم تحديث بياناتك بنجاح!' });
+        await refreshProfile();
+      } else {
+        // Guest profile update
+        localStorage.setItem('guest_name', fullName.trim());
+        localStorage.setItem('guest_phone', phone.trim());
+        
+        const commaIdx = address.indexOf('،');
+        if (commaIdx !== -1) {
+          localStorage.setItem('guest_region', address.substring(0, commaIdx).trim());
+          localStorage.setItem('guest_address', address.substring(commaIdx + 1).trim());
+        } else {
+          localStorage.setItem('guest_address', address.trim());
+        }
+        setMsg({ type: 'success', text: 'تم تحديث بيانات الزائر بنجاح! 🎉' });
+      }
     } catch (err: any) {
       console.error('Failed to update profile:', err);
       setMsg({ type: 'error', text: err.message || 'فشل التحديث. الرجاء المحاولة مجدداً.' });
