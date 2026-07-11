@@ -133,17 +133,30 @@ class OnlineOrdersController extends Controller
                 $itemsSubtotal += (float) ($item['price'] ?? 0) * (float) ($item['qty'] ?? 1);
             }
 
-            // Extract shipping fee: check order keys first, then fallback to difference
+            // Extract shipping fee: check explicit fields first, then correct fallback
+            $discountAmount = (float) ($order['discount_amount'] ?? 0);
             $shippingFee = 0.0;
-            if (isset($order['shipping_fee'])) {
-                $shippingFee = (float) $order['shipping_fee'];
-            } elseif (isset($order['delivery_fee'])) {
+
+            // shipping_fee column might exist with value > 0 (new orders)
+            // or exist with 0 (old orders that got DEFAULT 0 from migration)
+            // or not exist at all (before migration) → falls through to else
+            $storedShipping = isset($order['shipping_fee']) ? (float) $order['shipping_fee'] : -1;
+
+            if ($storedShipping > 0.01) {
+                // Column exists and has a real value — use it directly
+                $shippingFee = $storedShipping;
+            } elseif (isset($order['delivery_fee']) && (float) $order['delivery_fee'] > 0.01) {
                 $shippingFee = (float) $order['delivery_fee'];
-            } elseif (isset($order['delivery_charge'])) {
+            } elseif (isset($order['delivery_charge']) && (float) $order['delivery_charge'] > 0.01) {
                 $shippingFee = (float) $order['delivery_charge'];
             } else {
-                $shippingFee = (float) ($order['total_price'] ?? 0) - $itemsSubtotal;
+                // Fallback: total_price = subtotal - discount + shipping
+                // So shipping = total_price - subtotal + discount
+                $shippingFee = (float) ($order['total_price'] ?? 0) - $itemsSubtotal + $discountAmount;
             }
+
+            // Round to avoid floating point dust
+            $shippingFee = round($shippingFee, 2);
 
             if ($shippingFee > 0.01) {
                 // Ensure virtual product 999999 exists for shipping fee in local DB
@@ -153,7 +166,7 @@ class OnlineOrdersController extends Controller
                 $localItems[] = [
                     'product_id'  => 999999,
                     'qty'         => 1.0,
-                    'unit_price'  => round($shippingFee, 2),
+                    'unit_price'  => $shippingFee,
                     'sale_unit'   => 'piece',
                 ];
             }
@@ -214,6 +227,7 @@ class OnlineOrdersController extends Controller
                                     . ' | 📍 ' . ($order['delivery_address'] ?? '')
                                     . ' | 📞 ' . $deliveryPhone,
                 'items'            => $localItems,
+                'discount_total'   => (float) ($order['discount_amount'] ?? 0),
             ];
 
             $result = $salesModel->createFromPos($invoiceData);

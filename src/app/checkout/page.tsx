@@ -64,6 +64,11 @@ function CheckoutContent() {
 
   const [shippingFee, setShippingFee] = useState(50);
   const [threshold, setThreshold] = useState(800);
+  
+  // Delivery Hours States
+  const [deliveryStart, setDeliveryStart] = useState('17:00');
+  const [deliveryEnd, setDeliveryEnd] = useState('04:00');
+  const [deliveryMode, setDeliveryMode] = useState<'warn' | 'block'>('warn');
 
   useEffect(() => {
     async function loadConfig() {
@@ -78,6 +83,14 @@ function CheckoutContent() {
           
           if (feeSetting) setShippingFee(Number(feeSetting.value));
           if (thresholdSetting) setThreshold(Number(thresholdSetting.value));
+
+          const startSetting = settingsData.find(s => s.key === 'delivery_start_time');
+          const endSetting = settingsData.find(s => s.key === 'delivery_end_time');
+          const modeSetting = settingsData.find(s => s.key === 'delivery_outside_hours_mode');
+
+          if (startSetting) setDeliveryStart(startSetting.value);
+          if (endSetting) setDeliveryEnd(endSetting.value);
+          if (modeSetting) setDeliveryMode(modeSetting.value as 'warn' | 'block');
           return;
         }
       } catch (err) {
@@ -159,6 +172,37 @@ function CheckoutContent() {
   const isFreeShipping = subtotal >= threshold;
   const activeShippingFee = isFreeShipping ? 0 : zonePrice;
   const finalTotal = Math.max(0, subtotal - activeDiscount + activeShippingFee);
+
+  // Delivery working hours check helpers
+  const formatTimeStr = (timeStr: string) => {
+    try {
+      const [h, m] = timeStr.split(':').map(Number);
+      const suffix = h >= 12 ? 'مساءً' : 'صباحاً';
+      const displayHour = h % 12 === 0 ? 12 : h % 12;
+      const displayMin = m.toString().padStart(2, '0');
+      return `${displayHour}:${displayMin} ${suffix}`;
+    } catch {
+      return timeStr;
+    }
+  };
+
+  const isDeliveryWorking = (() => {
+    const parseTimeToMinutes = (time: string) => {
+      const [h, m] = time.split(':').map(Number);
+      return h * 60 + m;
+    };
+
+    const now = new Date();
+    const current = now.getHours() * 60 + now.getMinutes();
+    const start = parseTimeToMinutes(deliveryStart);
+    const end = parseTimeToMinutes(deliveryEnd);
+
+    if (start < end) {
+      return current >= start && current <= end;
+    } else {
+      return current >= start || current <= end;
+    }
+  })();
 
   // 1. Prefill details if profile exists, or load from localStorage for guests
   useEffect(() => {
@@ -925,18 +969,43 @@ function CheckoutContent() {
                     </div>
                   </div>
 
+                  {/* Delivery Hours Notice */}
+                  {!isDeliveryWorking && (
+                    <div className={`p-4 rounded-xl text-right text-xs border ${
+                      deliveryMode === 'block'
+                        ? 'bg-red-50 border-red-200 text-red-800'
+                        : 'bg-amber-50 border-amber-250 text-amber-900'
+                    } space-y-1`}>
+                      <div className="font-black flex items-center gap-1.5 justify-end">
+                        <span>{deliveryMode === 'block' ? 'التوصيل مغلق حالياً 🔒' : 'تنبيه: التوصيل خارج ساعات العمل الرسمية ⚠️'}</span>
+                      </div>
+                      <p className="font-semibold leading-relaxed">
+                        {deliveryMode === 'block'
+                          ? `نعتذر عن استقبال الطلبات حالياً. ساعات عمل خدمة التوصيل تبدأ من ${formatTimeStr(deliveryStart)} وتستمر حتى ${formatTimeStr(deliveryEnd)}.`
+                          : `ساعات عمل خدمة التوصيل الرسمية من ${formatTimeStr(deliveryStart)} إلى ${formatTimeStr(deliveryEnd)}. يمكنك تأكيد طلبك الآن وسنقوم بتجهيزه وتوصيله لك فور بدء الخدمة في تمام الساعة ${formatTimeStr(deliveryStart)}.`
+                        }
+                      </p>
+                    </div>
+                  )}
+
                   {/* Submit checkout CTA */}
                   <div className="pt-2">
                     <button
                       type="submit"
-                      disabled={orderLoading}
-                      className="w-full py-3.5 bg-primary hover:bg-primary-dark text-white font-black text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                      disabled={orderLoading || (!isDeliveryWorking && deliveryMode === 'block')}
+                      className={`w-full py-3.5 text-white font-black text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer ${
+                        !isDeliveryWorking && deliveryMode === 'block'
+                          ? 'bg-slate-400 hover:bg-slate-400 cursor-not-allowed'
+                          : 'bg-primary hover:bg-primary-dark'
+                      }`}
                     >
                       {orderLoading ? (
                         <>
                           <Loader2 size={14} className="animate-spin" />
                           جاري تسجيل طلبك...
                         </>
+                      ) : !isDeliveryWorking && deliveryMode === 'block' ? (
+                        'التوصيل مغلق حالياً 🔒'
                       ) : (
                         'تأكيد الطلب'
                       )}

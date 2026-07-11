@@ -1,36 +1,138 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎨 نظام التصميم ودليل الهوية البصرية لمتجر "الناصرية جملة ماركت"
+> دليل شامل لتحليل الهوية، التصميم، التفاعل، وكيفية إعادة استخدام النظام بالكامل في أي متجر أو موقع إلكتروني آخر بمجرد تعديل الألوان والشعار.
 
-## Getting Started
+---
 
-First, run the development server:
+## 🌟 فلسفة وأركان التصميم (Design Archetype)
+يجمع تصميم هذا المتجر بين **أصالة الثقة المحلية** و**العصرية الرقمية الفائقة (Futuristic Premium)**. تم تصميمه ليناسب تجربة تسوق سريعة ومبهرة بصرياً عبر دمج:
+1. **ألوان الهوية الهادفة**: الأخضر (يرمز للنقاء، الطزاجة، والنمو) مع لمسات الذهب الملكي (ترمز للخدمة الراقية والعروض القيّمة "التاج").
+2. **التفاعل ثلاثي الأبعاد والنيون**: إضافة خلفيات متحركة تفاعلية خفيفة تحاكي العمق الفراغي والجزئيات الطائرة لتعطي طابع التطبيقات الحديثة والمنصات التقنية الفخمة.
+3. **تعددية طرق العرض (Layout Modes)**: تمكين العميل من اختيار طريقة العرض المفضلة لديه (طولية أو عرضية) بسلاسة ميكرو-أنيقة.
+4. **التأثيرات الزجاجية (Glassmorphism)**: دمج طبقات شبه شفافة مع تمويه للخلفيات يعطي عمقاً وإحساساً بالفخامة الرقمية.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+---
+
+## 🎯 دليل التخصيص السريع (Quick Re-Branding Guide)
+لتحويل هذا التصميم بالكامل ليناسب متجرك الجديد (مثال: متجر عطور، متجر أجهزة كهربائية، إلخ)، تحتاج فقط لتعديل ملف واحد رئيسي وهو ملف التنسيقات العالمي ومجلد الصور.
+
+### 1. تبديل الألوان والخطوط (CSS Theme Variables)
+افتح ملف التنسيقات الرئيسي: `src/app/globals.css` [globals.css](file:///home/omar/Desktop/GHARIB/src/app/globals.css)
+
+ستجد الألوان مجمعة ومُعرفة داخل قالب `@theme` الخاص بـ Tailwind v4 كالتالي:
+
+```css
+@theme {
+  --font-sans: 'Cairo', system-ui, -apple-system, sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  
+  --color-primary: #04ba06;       /* اللون الأساسي (الأخضر للغذاء/الطبيعة) */
+  --color-primary-dark: #028a04;  /* درجة داكنة من اللون الأساسي */
+  --color-primary-light: #22c55e; /* درجة فاتحة من اللون الأساسي */
+  --color-accent: #dc2626;        /* لون الجذب والانتباه (أحمر للخصومات) */
+  --color-accent-dark: #b91c1c;   /* درجة داكنة من لون الانتباه */
+  --color-gold: #d4af37;          /* اللون الذهبي الملكي (للعروض المميزة والجملة) */
+  --color-gold-dark: #b8860b;     /* ذهبي داكن */
+  --color-gold-light: #fbf5e6;    /* ذهبي فاتح جداً (خلفية البطاقات) */
+}
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+#### 💡 فكرة للتخصيص:
+* **إذا كنت تبني متجر عطور أو مستحضرات تجميل فاخرة:**
+  استبدل درجات الأخضر بدرجات الـ Rose Gold أو الأسود المخملي والنيود.
+  ```css
+  --color-primary: #e0a96d;       /* ذهبي دافئ ناعم */
+  --color-primary-dark: #201a15;  /* أسود بني دافئ */
+  --color-primary-light: #f7e7d6; /* نيود فاتح */
+  ```
+* **إذا كنت تبني متجر إلكترونيات وأجهزة ذكية:**
+  استبدل درجات الأخضر بالأزرق الكهربائي والرمادي الميتاليك.
+  ```css
+  --color-primary: #0066cc;       /* أزرق تقني */
+  --color-primary-dark: #0044bb;  
+  --color-primary-light: #33a3ff;
+  ```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 2. تبديل الشعار والصور الخلفية
+* استبدل ملف الشعار في المسار المباشر: `public/logo.jpeg` بأبعاد مربعة متساوية (مثال: 512x512 بكسل).
+* استبدل الصورة الخلفية للقسم الرئيسي (Hero Section) في المسار: `public/hero-bg.png`. يفضل أن تكون صورة ذات شفافية أو بألوان هادئة لا تشتت النصوص.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## 🛠️ تحليل المكونات التفاعلية والفنية (Interactive Components)
 
-To learn more about Next.js, take a look at the following resources:
+### 1. خلفية الشبكة ثلاثية الأبعاد والجزئيات العائمة (`Canvas3DGrid`)
+* **الملف المسئول:** `src/components/Canvas3DGrid.tsx` [Canvas3DGrid.tsx](file:///home/omar/Desktop/GHARIB/src/components/Canvas3DGrid.tsx)
+* **الفكرة الفنية:** بدلاً من استخدام مكتبات ثلاثية الأبعاد ثقيلة مثل Three.js تؤثر على سرعة الصفحة والأداء (SEO)، تم بناء محرك إسقاط رياضي خفيف ومخصص للغاية باستخدام عنصر الـ Canvas ثنائي الأبعاد ورسم خطوط الشبكة وجزئيات النيون بحساب إحداثيات العمق $z$ وعرضها بالمنظور البؤري (Perspective Projection) مع حركة متموجة للشبكة ومؤشر عمق بؤري يتلاشى تدريجياً.
+* **كيفية إعادة الاستخدام:** 
+  يمكنك استدعاؤه كخلفية لأي قسم رئيسي أو Hero Section عن طريق إدراجه كـ Absolute Element خلف النصوص:
+  ```tsx
+  import Canvas3DGrid from '@/components/Canvas3DGrid';
+  // ...
+  <div className="relative overflow-hidden">
+     <Canvas3DGrid opacity={0.65} />
+     {/* محتوى الصفحة هنا */}
+  </div>
+  ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 2. الكوبونات وتذاكر الخصم ذات الأطراف المفرغة
+* **الملف المسئول:** `src/app/page.tsx` [page.tsx](file:///home/omar/Desktop/GHARIB/src/app/page.tsx) (قسم الكوبونات)
+* **الفكرة الفنية:** لعمل إحساس التذكرة الورقية الحقيقية المقطوعة من الأطراف، تم استخدام التصميم الهندسي البحت بواسطة CSS بدون صور كالتالي:
+  * جعل الحاوية `relative overflow-hidden` بحدود متقطعة `border-dashed`.
+  * وضع دوائر مفرغة صغيرة على الجوانب `absolute rounded-full` بلون يطابق لون الخلفية العامة للموقع وبأبعاد سالبة لتبدو وكأنها قطع حقيقي في التذكرة:
+    ```tsx
+    <div className="absolute -left-3.5 top-1/2 -translate-y-1/2 w-7 h-7 bg-slate-50 border-r border-slate-250 rounded-full" />
+    <div className="absolute -right-3.5 top-1/2 -translate-y-1/2 w-7 h-7 bg-slate-50 border-l border-slate-250 rounded-full" />
+    ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 3. بطاقة المنتج المزدوجة والتفاعلية (`ProductCard`)
+* **الملف المسئول:** `src/components/ProductCard.tsx` [ProductCard.tsx](file:///home/omar/Desktop/GHARIB/src/components/ProductCard.tsx)
+* **أبرز ميزاتها الفنية:**
+  * **دعم نمطي العرض:** تتيح التبديل الفوري بين كروت الطول (المناسبة لشبكة منسقة) وكروت العرض (المناسبة للشاشات الصغيرة وتسهيل القراءة المتتالية وسرعة تصفح الأصناف).
+  * **تسعير الجملة والقطاعي:** يظهر السعرين بطريقة لافتة ومرتبة مع احتساب الحد الأدنى لخصم الجملة لإضفاء طابع التوفير.
+  * **محدد الوزن المنسدل (Weight Selector):** للمنتجات التي تباع بالجرام أو الكيلو، يعرض خيارات سهلة التحديد (125جم، 250جم، 500جم، 1 كيلو) لتفادي التعقيد في صفحات الدفع.
+  * **مشاركة المنتج الديناميكية:** تدعم ميزة Web Share API لمشاركة المنتج مباشرة عبر تطبيقات التواصل الاجتماعي على الهواتف مع آلية نسخ احتياطي للرابط في حال عدم توفر الميزة في المتصفح.
 
-## Deploy on Vercel
+### 4. كاشف التمرير والظهور السلس (`ScrollReveal`)
+* **الملف المسئول:** `src/components/ScrollReveal.tsx` [ScrollReveal.tsx](file:///home/omar/Desktop/GHARIB/src/components/ScrollReveal.tsx)
+* **الفكرة الفنية:** بدلاً من استخدام مكتبات ضخمة مثل Framer Motion أو AOS، تم استخدام واجهة متصفح الويب الأساسية `IntersectionObserver` لمراقبة دخول العناصر للشاشة وتطبيق فئات Tailwind للتحول التدريجي (`opacity-100 translate-y-0 scale-100`) فقط عند رؤية العنصر لأول مرة، مما يرفع أداء الموقع وسرعة استجابته لـ 100% في مؤشرات جوجل للأداء.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📐 الهيكل الشجري للملفات المتعلقة بالتصميم (Design Files Map)
+لمعرفة أين يكمن كل عنصر بصري وتفاعلي في المشروع لتسهيل النقل أو التعديل:
+
+```text
+src/
+├── app/
+│   ├── globals.css          # الألوان الرئيسية، أنماط الزجاج، الحركات العامة، والخطوط
+│   ├── layout.tsx           # الهيكل الرئيسي، اتجاه الصفحة (dir="rtl")
+│   └── page.tsx             # الصفحة الرئيسية (الهيرو، الكوبونات، الشبكة المتحركة، الفهرس)
+└── components/
+    ├── Navbar.tsx           # شريط التنقل العلويSticky، سلة المشتريات المنزلقة، والمفضلة
+    ├── Footer.tsx           # التذييل السفلي، روابط التواصل، النشرة البريدية
+    ├── ProductCard.tsx      # تصميم بطاقة المنتج بنمطيها (الطول والعرض)، الجملة، ومحدد الأوزان
+    ├── Canvas3DGrid.tsx     # المحرك الرياضي لخلفية الشبكة ثلاثية الأبعاد والجزئيات المتحركة
+    └── ScrollReveal.tsx     # متحكم الحركات والظهور التدريجي عند تصفح الصفحة
+```
+
+---
+
+## ⚡ خطوات نقل هذا التصميم الفخم إلى مشروع جديد بالكامل
+إذا كنت تريد إنشاء مشروع Next.js جديد وتطبيق هذا التصميم المبهر عليه، اتبع الآتي:
+
+1. **نسخ ملف التنسيقات**: انقل ملف `globals.css` إلى مشروعك الجديد في مجلد الـ CSS الرئيسي.
+2. **تثبيت الأيقونات**: تأكد من تثبيت مكتبة `lucide-react` للأيقونات:
+   ```bash
+   npm install lucide-react
+   ```
+3. **تثبيت محرك الخطوط**: نستخدم خط **Cairo** من Google Fonts وهو مستورد تلقائياً في السطر الأول من ملف `globals.css`.
+4. **نسخ المكونات**: انسخ مجلد `src/components` بالكامل إلى مشروعك الجديد.
+5. **تهيئة ملف Tailwind**: تأكد من توافق إعدادات Tailwind CSS في مشروعك الجديد مع Tailwind v4 لقراءة قيم الـ `@theme` المخصصة.
+
+---
+
+### 👑 ميزات جمالية إضافية مدمجة بالملف:
+* **تأثير اللمعان الذهبي الشفاف (`gold-shimmer`)**: فئة CSS مخصصة تعطي حركة لمعان معدني تمر عبر الكوبونات أو الكروت لإعطائها مظهراً ملكياً مميزاً.
+* **الحركة التفاعلية اللطيفة للبيدجات (`animate-pulse-subtle`)**: تستخدم على كروت الخصم لتبدو وكأنها تنبض بهدوء لجذب عين المشتري دون إزعاجه بصرياً.
+* **شريط البراند العلوي التدرجي**: شريط رفيع جداً بارتفاع `h-1` يمتد أعلى الشاشة بالكامل بتدرج لوني مميز يربط هوية الموقع بالمتصفح.

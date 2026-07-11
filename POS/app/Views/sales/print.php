@@ -179,10 +179,17 @@ if ($isRetailInvoice) {
             $unitKey = $item['sale_unit'] ?? 'piece';
             $unitLabel = $unitKey === 'box' ? 'علبة' : ($unitKey === 'sack' ? 'شيكارة' : ($unitKey === 'kg' ? 'كجم' : 'قطعة'));
             $isScaleItem = (int) ($item['is_scale_item'] ?? 0) === 1;
+            // Fallback name for virtual shipping product if product record is missing
+            $productName = (string) ($item['product_name'] ?? '');
+            if ($productName === '' || is_numeric($productName)) {
+                $productName = (int) ($item['product_id'] ?? 0) === 999999
+                    ? 'مصاريف الشحن والتوصيل'
+                    : 'صنف غير محدد';
+            }
             ?>
             <tr>
                 <td style="text-align: right; font-weight: 700;">
-                    <?= e($item['product_name']) ?><br>
+                    <?= e($productName) ?><br>
                     <span style="font-size: 11px; font-weight: normal; color: #333;">
                         (<?= e($unitLabel) ?>)
                         <?php if ($isScaleItem): ?>
@@ -199,9 +206,44 @@ if ($isRetailInvoice) {
     </table>
 
     <div class="summary">
+        <?php
+        // Compute items subtotal from the items list
+        $itemsLineTotal = 0.0;
+        foreach ($row['items'] as $it) {
+            if ((int)($it['product_id'] ?? 0) !== 999999) {
+                $itemsLineTotal += (float) ($it['line_total'] ?? 0);
+            }
+        }
+        $discountRow = (float) ($row['discount_total'] ?? 0);
+        $grandTotal  = (float) ($row['grand_total'] ?? 0);
+        // Infer shipping fee: grand = subtotal - discount + shipping
+        $inferredShipping = round($grandTotal - $itemsLineTotal + $discountRow, 2);
+
+        // Check if a 999999 line item already exists (shipping already in items list)
+        $hasShippingItem = false;
+        foreach ($row['items'] as $it) {
+            if ((int)($it['product_id'] ?? 0) === 999999) { $hasShippingItem = true; break; }
+        }
+        ?>
+        <?php if ($discountRow > 0): ?>
+        <div class="summary-row">
+            <span>المجموع الفرعي</span>
+            <span><?= money($itemsLineTotal) ?></span>
+        </div>
+        <div class="summary-row" style="color:#e53e3e;">
+            <span>الخصم</span>
+            <span>- <?= money($discountRow) ?></span>
+        </div>
+        <?php endif; ?>
+        <?php if (!$hasShippingItem && $inferredShipping > 0.5): ?>
+        <div class="summary-row">
+            <span>مصاريف الشحن والتوصيل</span>
+            <span><?= money($inferredShipping) ?></span>
+        </div>
+        <?php endif; ?>
         <div class="summary-row total">
             <span>الإجمالي النهائي</span>
-            <strong><?= money($row['grand_total']) ?></strong>
+            <strong><?= money($grandTotal) ?></strong>
         </div>
     </div>
 

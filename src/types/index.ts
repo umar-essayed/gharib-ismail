@@ -40,6 +40,7 @@ export interface Product {
   created_at?: string;
   importance_score?: number;
   accepts_weight?: boolean;
+  pos_product_id?: number | null;
 }
 
 export interface CartItem {

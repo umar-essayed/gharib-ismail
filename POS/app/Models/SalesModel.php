@@ -63,9 +63,13 @@ class SalesModel extends Model
         }
 
         $items = $this->db->prepare(
-            'SELECT i.*, p.name AS product_name, p.sell_type AS product_sell_type, p.weight_unit AS product_weight_unit, u.short_name AS unit_name
+            'SELECT i.*,
+                    COALESCE(p.name, i.product_id) AS product_name,
+                    p.sell_type AS product_sell_type,
+                    p.weight_unit AS product_weight_unit,
+                    u.short_name AS unit_name
              FROM sales_invoice_items i
-             JOIN products p ON p.id = i.product_id
+             LEFT JOIN products p ON p.id = i.product_id
              LEFT JOIN units u ON u.id = i.unit_id
              WHERE i.sales_invoice_id = :id'
         );
@@ -84,6 +88,19 @@ class SalesModel extends Model
         $requireShift = SettingsService::get('require_shift_for_sale', '1') === '1';
         if ($requireShift && empty($data['shift_id'])) {
             throw new RuntimeException('يجب فتح شيفت قبل البيع');
+        }
+
+        // Ensure virtual product 999999 (shipping fee) always exists before creating the invoice
+        $hasShipping = false;
+        foreach ($data['items'] as $it) {
+            if ((int) $it['product_id'] === 999999) { $hasShipping = true; break; }
+        }
+        if ($hasShipping) {
+            $this->db->exec(
+                "INSERT OR IGNORE INTO products (id, name, purchase_price, sale_price, min_stock, opening_stock,
+                 sell_type, package_type, track_stock, is_active)
+                 VALUES (999999, 'مصاريف الشحن والتوصيل', 0, 0, 0, 0, 'piece', 'piece', 0, 1)"
+            );
         }
 
         $this->db->beginTransaction();
@@ -105,6 +122,9 @@ class SalesModel extends Model
             }
 
             $totals = $this->calculateTotals($data['items']);
+            $discountTotal = (float) ($data['discount_total'] ?? 0);
+            $totals['discount_total'] = $discountTotal;
+            $totals['grand_total'] = max(0.0, $totals['subtotal'] - $discountTotal);
 
             $requestedPaid = (float) ($data['paid_total'] ?? 0);
             $isCod = !empty($data['is_cod']); // طلب دفع عند الاستلام (COD)
@@ -163,7 +183,7 @@ class SalesModel extends Model
                 'user_id' => $userId,
                 'customer_id' => $customerId,
                 'subtotal' => $totals['subtotal'],
-                'discount_total' => 0,
+                'discount_total' => $totals['discount_total'],
                 'tax_total' => 0,
                 'grand_total' => $totals['grand_total'],
                 'paid_total' => $paid,

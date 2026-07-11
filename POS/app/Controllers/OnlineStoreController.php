@@ -453,13 +453,21 @@ class OnlineStoreController extends Controller
             SettingsService::set('ecom_shipping_fee', (string)$shippingFee);
             SettingsService::set('ecom_free_shipping_threshold', (string)$freeShippingThreshold);
 
+            // Sync to Supabase in real-time
+            SupabaseSyncService::updateShippingSettings($shippingFee, $freeShippingThreshold);
+
             $configPath = base_path('../public/ecom_config.json');
             $configData = [
                 'shipping_fee' => $shippingFee,
                 'free_shipping_threshold' => $freeShippingThreshold,
                 'last_updated' => date('Y-m-d H:i:s')
             ];
-            file_put_contents($configPath, json_encode($configData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+            
+            // Write only if the directory exists (to prevent errors in packaged Windows environments)
+            $configDir = dirname($configPath);
+            if (is_dir($configDir)) {
+                file_put_contents($configPath, json_encode($configData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+            }
 
             flash_success('تم تحديث إعدادات شحن المتجر بنجاح ومزامنتها مع واجهة العملاء');
         } catch (\Throwable $e) {

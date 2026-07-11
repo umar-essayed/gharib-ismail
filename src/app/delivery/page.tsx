@@ -4,19 +4,40 @@ import React from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Truck, MapPin, Clock, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 export default function DeliveryPage() {
   const [threshold, setThreshold] = React.useState(800);
 
   React.useEffect(() => {
-    fetch('/ecom_config.json')
-      .then((r) => r.json())
-      .then((data) => {
-        if (data && data.free_shipping_threshold) {
-          setThreshold(Number(data.free_shipping_threshold));
+    async function loadConfig() {
+      try {
+        const { data: settingsData } = await supabase
+          .from('pos_settings')
+          .select('key, value');
+        
+        if (settingsData && settingsData.length > 0) {
+          const thresholdSetting = settingsData.find(s => s.key === 'ecom_free_shipping_threshold');
+          if (thresholdSetting) {
+            setThreshold(Number(thresholdSetting.value));
+            return;
+          }
         }
-      })
-      .catch(() => {});
+      } catch (err) {
+        console.warn('Failed to load threshold from pos_settings:', err);
+      }
+      
+      // Fallback
+      fetch('/ecom_config.json')
+        .then((r) => r.json())
+        .then((data) => {
+          if (data && data.free_shipping_threshold) {
+            setThreshold(Number(data.free_shipping_threshold));
+          }
+        })
+        .catch(() => {});
+    }
+    loadConfig();
   }, []);
 
   return (

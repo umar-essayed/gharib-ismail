@@ -1852,6 +1852,21 @@
 
     // Keep search focused when clicking empty areas
     document.addEventListener('click', (e) => {
+        // Ignore clicks if a modal/popup/overlay is open to prevent focus traps
+        if (document.body.classList.contains('modal-open') || 
+            document.querySelector('.modal.show') || 
+            document.querySelector('.modal.in') ||
+            e.target.closest('.modal') ||
+            e.target.closest('.sweet-alert') ||
+            e.target.closest('.swal2-container') ||
+            e.target.closest('.bootbox') ||
+            e.target.closest('.modal-content') ||
+            e.target.closest('.modal-backdrop') ||
+            e.target.closest('.popup') ||
+            e.target.closest('.dialog')) {
+            return;
+        }
+
         // Ignore clicks on scrollbars or the raw document body/html to prevent erratic focus jumps
         if (e.target === document.documentElement || e.target === document.body) return;
         
@@ -1864,6 +1879,14 @@
 
     // Auto-focus search when typing printable characters on the body
     document.addEventListener('keypress', (e) => {
+        // Ignore keypress if a modal/popup/overlay is open
+        if (document.body.classList.contains('modal-open') || 
+            document.querySelector('.modal.show') || 
+            document.querySelector('.modal.in') ||
+            document.querySelector('.sweet-alert') ||
+            document.querySelector('.swal2-container')) {
+            return;
+        }
         const tag = String(e.target?.tagName || '').toLowerCase();
         const ignore = ['input', 'select', 'textarea'];
         if (!ignore.includes(tag)) {

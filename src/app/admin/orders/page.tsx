@@ -43,7 +43,7 @@ function AdminOrdersContent() {
   const [adminError, setAdminError] = useState<string | null>(null);
 
   // Tab State
-  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'categories' | 'stats' | 'banners'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'categories' | 'stats' | 'banners' | 'gallery'>('orders');
 
   // Core Lists
   const [orders, setOrders] = useState<Order[]>([]);
@@ -96,6 +96,28 @@ function AdminOrdersContent() {
   const [modalError, setModalError] = useState<string | null>(null);
   const [saveLoading, setSaveLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+
+  // Image Gallery States
+  const [storageImages, setStorageImages] = useState<{ name: string; url: string }[]>([]);
+  const [loadingImages, setLoadingImages] = useState(false);
+  const [showGallerySelectorModal, setShowGallerySelectorModal] = useState(false);
+  const [gallerySearchQuery, setGallerySearchQuery] = useState('');
+  const [selectedGalleryImageForProduct, setSelectedGalleryImageForProduct] = useState<string | null>(null);
+  const [galleryFilter, setGalleryFilter] = useState<'unlinked' | 'linked' | 'all'>('unlinked');
+  
+  // Reverse linking states (Gallery tab)
+  const [linkingImage, setLinkingImage] = useState<{ name: string; url: string } | null>(null);
+  const [linkingProductId, setLinkingProductId] = useState<string>('');
+  const [linkingSearchQuery, setLinkingSearchQuery] = useState<string>('');
+  const [linkingLoading, setLinkingLoading] = useState<boolean>(false);
+  const [modalProducts, setModalProducts] = useState<Product[]>([]);
+  const [searchingModalProducts, setSearchingModalProducts] = useState(false);
+
+  // Delivery settings states
+  const [deliveryStart, setDeliveryStart] = useState('17:00');
+  const [deliveryEnd, setDeliveryEnd] = useState('04:00');
+  const [deliveryMode, setDeliveryMode] = useState<'warn' | 'block'>('warn');
+  const [savingSettings, setSavingSettings] = useState(false);
 
   // Category Form Modal States
   const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -217,10 +239,59 @@ function AdminOrdersContent() {
     setProductSearchTimeout(timeout);
   };
 
+  const fetchStorageImages = async () => {
+    setLoadingImages(true);
+    try {
+      const { data, error } = await supabase.storage.from('product-images').list('products', {
+        limit: 1000,
+        sortBy: { column: 'created_at', order: 'desc' }
+      });
+      if (error) throw error;
+      if (data) {
+        const imagesList = data
+          .filter(file => file.name !== '.emptyFolderPlaceholder')
+          .map(file => {
+            const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl('products/' + file.name);
+            return {
+              name: file.name,
+              url: publicUrl
+            };
+          });
+        setStorageImages(imagesList);
+      }
+    } catch (err) {
+      console.error('Error fetching storage images:', err);
+    } finally {
+      setLoadingImages(false);
+    }
+  };
+
   // 2. Fetch existing data from Supabase
   const fetchData = async () => {
     try {
       setLoading(true);
+      
+      // Load storage images
+      fetchStorageImages();
+
+      // Load delivery settings
+      try {
+        const { data: settingsData } = await supabase
+          .from('pos_settings')
+          .select('key, value');
+        
+        if (settingsData && settingsData.length > 0) {
+          const startSetting = settingsData.find(s => s.key === 'delivery_start_time');
+          const endSetting = settingsData.find(s => s.key === 'delivery_end_time');
+          const modeSetting = settingsData.find(s => s.key === 'delivery_outside_hours_mode');
+
+          if (startSetting) setDeliveryStart(startSetting.value);
+          if (endSetting) setDeliveryEnd(endSetting.value);
+          if (modeSetting) setDeliveryMode(modeSetting.value as 'warn' | 'block');
+        }
+      } catch (err) {
+        console.warn('Failed to load delivery hours settings:', err);
+      }
       
       // Load Orders
       const { data: orderData, error: orderErr } = await supabase
@@ -333,6 +404,50 @@ function AdminOrdersContent() {
       };
     }
   }, [profile]);
+
+  useEffect(() => {
+    if (!linkingImage) {
+      setModalProducts([]);
+      return;
+    }
+    
+    // If query is empty, initialize modalProducts with first 100 products from client products state
+    if (!linkingSearchQuery.trim()) {
+      setModalProducts(products.slice(0, 100));
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      setSearchingModalProducts(true);
+      try {
+        let query = supabase
+          .from('products')
+          .select('*')
+          .order('name', { ascending: true })
+          .limit(100);
+
+        const cleanQuery = linkingSearchQuery.trim();
+        const numVal = Number(cleanQuery);
+        if (!isNaN(numVal) && cleanQuery !== '') {
+          query = query.or(`name.ilike.%${cleanQuery}%,pos_product_id.eq.${numVal}`);
+        } else {
+          query = query.or(`name.ilike.%${cleanQuery}%,description.ilike.%${cleanQuery}%`);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+        if (data) {
+          setModalProducts(data.map(normalizeProduct));
+        }
+      } catch (err) {
+        console.error('Error searching products for gallery link:', err);
+      } finally {
+        setSearchingModalProducts(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [linkingSearchQuery, linkingImage, products]);
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -477,6 +592,62 @@ function AdminOrdersContent() {
       addLog(`❌ فشل رفع الصورة: ${err.message || err}`);
     } finally {
       setUploadingImage(false);
+    }
+  };
+
+  const handleLinkImageToProduct = async (productId: string, imageUrl: string) => {
+    if (!productId || !imageUrl) return;
+    setLinkingLoading(true);
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update({ image_url: imageUrl })
+        .eq('id', productId);
+
+      if (error) throw error;
+      
+      const prod = products.find(p => p.id === productId);
+      const prodName = prod ? prod.name : 'المنتج';
+      addLog(`✓ تم ربط الصورة بالمنتج بنجاح: ${prodName}`);
+      
+      // Update local state directly so it reflects immediately
+      setProducts(prev => prev.map(p => p.id === productId ? { ...p, image_url: imageUrl } : p));
+      setLinkingImage(null);
+      setLinkingProductId('');
+    } catch (err: any) {
+      console.error('Error linking image:', err);
+      alert('حدث خطأ أثناء ربط الصورة: ' + (err.message || err));
+    } finally {
+      setLinkingLoading(false);
+    }
+  };
+
+  const handleSaveDeliverySettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingSettings(true);
+    try {
+      const { error: err1 } = await supabase
+        .from('pos_settings')
+        .upsert({ key: 'delivery_start_time', value: deliveryStart }, { onConflict: 'key' });
+      if (err1) throw err1;
+
+      const { error: err2 } = await supabase
+        .from('pos_settings')
+        .upsert({ key: 'delivery_end_time', value: deliveryEnd }, { onConflict: 'key' });
+      if (err2) throw err2;
+
+      const { error: err3 } = await supabase
+        .from('pos_settings')
+        .upsert({ key: 'delivery_outside_hours_mode', value: deliveryMode }, { onConflict: 'key' });
+      if (err3) throw err3;
+
+      addLog('✓ تم حفظ مواعيد عمل التوصيل بنجاح');
+      alert('تم حفظ الإعدادات بنجاح!');
+    } catch (err: any) {
+      console.error('Error saving delivery settings:', err);
+      alert('فشل حفظ الإعدادات: ' + (err.message || err));
+    } finally {
+      setSavingSettings(false);
     }
   };
 
@@ -1135,6 +1306,17 @@ function AdminOrdersContent() {
           >
             <Tag size={14} />
             البانرات والكوبونات
+          </button>
+          <button
+            onClick={() => { setActiveTab('gallery'); setSearchQuery(''); fetchStorageImages(); }}
+            className={`pb-3.5 px-5 border-b-2 transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'gallery' 
+                ? 'border-primary text-primary font-black' 
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Package size={14} />
+            معرض الصور ({storageImages.length})
           </button>
         </div>
 
@@ -2032,7 +2214,306 @@ CREATE POLICY "Admin Delete Storage" ON storage.objects FOR DELETE USING (bucket
                 </div>
               </div>
 
+              {/* Delivery Hours Settings Section */}
+              <div className="lg:col-span-12 bg-white border border-slate-150 rounded-3xl p-6 shadow-xs space-y-4 text-right">
+                <div className="flex items-center gap-2 border-b border-slate-100 pb-3 justify-end">
+                  <div>
+                    <h3 className="text-xs font-black text-slate-900">ساعات عمل خدمة التوصيل ⏰</h3>
+                    <p className="text-[10px] text-slate-400 font-semibold mt-0.5">اضبط مواعيد عمل الدليفري وسلوك الموقع خارج أوقات العمل</p>
+                  </div>
+                </div>
+                
+                <form onSubmit={handleSaveDeliverySettings} className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end text-xs font-semibold text-slate-700">
+                  <div className="space-y-1.5">
+                    <label className="block">ساعة بدء العمل (افتراضي 5:00 مساءً) *</label>
+                    <input
+                      type="time"
+                      required
+                      value={deliveryStart}
+                      onChange={(e) => setDeliveryStart(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-center focus:outline-none focus:ring-1 focus:ring-primary text-slate-950 font-bold"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block">ساعة انتهاء العمل (افتراضي 4:00 فجراً) *</label>
+                    <input
+                      type="time"
+                      required
+                      value={deliveryEnd}
+                      onChange={(e) => setDeliveryEnd(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-center focus:outline-none focus:ring-1 focus:ring-primary text-slate-955 font-bold"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block">حالة استقبال الطلبات خارج ساعات العمل *</label>
+                    <select
+                      value={deliveryMode}
+                      onChange={(e) => setDeliveryMode(e.target.value as 'warn' | 'block')}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-center focus:outline-none focus:ring-1 focus:ring-primary text-slate-950 font-bold cursor-pointer"
+                    >
+                      <option value="warn">قبول الطلبات مع تنبيه العميل (توصيل لاحق) ⚠️</option>
+                      <option value="block">إغلاق استقبال الطلبات بالكامل (يظهر لوك) 🔒</option>
+                    </select>
+                  </div>
+
+                  <div className="md:col-span-3 pt-2">
+                    <button
+                      type="submit"
+                      disabled={savingSettings}
+                      className="w-full py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                    >
+                      {savingSettings ? <Loader2 size={12} className="animate-spin" /> : 'حفظ إعدادات مواعيد التوصيل 💾'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+
             </div>
+          </div>
+        )}
+
+        {/* Tab 6 Content: Image Gallery Manager */}
+        {activeTab === 'gallery' && (
+          <div className="space-y-6 animate-in fade-in duration-200 text-right">
+            <div className="bg-white border border-slate-150 rounded-3xl p-6 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                <div className="flex items-center gap-2.5">
+                  <span className="p-2.5 bg-primary/10 text-primary rounded-2xl">
+                    <Package size={20} />
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900">معرض الصور المرفوعة (Supabase Storage)</h3>
+                    <p className="text-[10px] text-slate-400 font-semibold mt-0.5">تصفح كافة صور المنتجات واربطها بأي منتج مباشرة</p>
+                  </div>
+                </div>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+                  {/* Gallery Filter Switchers */}
+                  <div className="flex bg-slate-100 p-1 rounded-xl text-[10px] font-bold border border-slate-200">
+                    <button
+                      onClick={() => setGalleryFilter('unlinked')}
+                      className={`px-3 py-1.5 rounded-lg transition-all whitespace-nowrap cursor-pointer ${
+                        galleryFilter === 'unlinked' ? 'bg-white text-slate-900 shadow-xs font-black' : 'text-slate-500 hover:text-slate-900'
+                      }`}
+                    >
+                      غير مربوطة ({storageImages.filter(img => !products.some(p => p.image_url === img.url)).length})
+                    </button>
+                    <button
+                      onClick={() => setGalleryFilter('linked')}
+                      className={`px-3 py-1.5 rounded-lg transition-all whitespace-nowrap cursor-pointer ${
+                        galleryFilter === 'linked' ? 'bg-white text-slate-900 shadow-xs font-black' : 'text-slate-500 hover:text-slate-900'
+                      }`}
+                    >
+                      مربوطة ({storageImages.filter(img => products.some(p => p.image_url === img.url)).length})
+                    </button>
+                    <button
+                      onClick={() => setGalleryFilter('all')}
+                      className={`px-3 py-1.5 rounded-lg transition-all whitespace-nowrap cursor-pointer ${
+                        galleryFilter === 'all' ? 'bg-white text-slate-900 shadow-xs font-black' : 'text-slate-500 hover:text-slate-900'
+                      }`}
+                    >
+                      الكل ({storageImages.length})
+                    </button>
+                  </div>
+
+                  <div className="relative w-full sm:w-60">
+                    <input
+                      type="text"
+                      placeholder="🔍 ابحث عن اسم الصورة..."
+                      value={gallerySearchQuery}
+                      onChange={(e) => setGallerySearchQuery(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3 pr-9 py-2 text-right focus:outline-none focus:ring-1 focus:ring-primary text-xs font-bold text-slate-900"
+                    />
+                    <Search size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  </div>
+                </div>
+              </div>
+
+              {loadingImages ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400">
+                  <Loader2 className="animate-spin text-primary" size={32} />
+                  <p className="text-xs font-bold">جاري تحميل الصور من سوبابيز...</p>
+                </div>
+              ) : (
+                <>
+                  {storageImages.length === 0 ? (
+                    <div className="text-center py-16 text-slate-400 space-y-2">
+                      <p className="text-2xl">📸</p>
+                      <p className="text-xs font-bold">لم يتم العثور على أي صور في Storage.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
+                      {storageImages
+                        .filter(img => {
+                          // Search filter
+                          const nameMatch = img.name.toLowerCase().includes(gallerySearchQuery.toLowerCase());
+                          if (!nameMatch) return false;
+
+                          // Linking filter
+                          const isLinked = products.some(p => p.image_url === img.url);
+                          if (galleryFilter === 'unlinked') return !isLinked;
+                          if (galleryFilter === 'linked') return isLinked;
+                          return true;
+                        })
+                        .map((img) => {
+                          const linkedProducts = products.filter(p => p.image_url === img.url);
+                          const isLinked = linkedProducts.length > 0;
+
+                          return (
+                            <div key={img.name} className="bg-slate-50 border border-slate-150 rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col group relative">
+                              <div className="aspect-square w-full bg-slate-100 relative overflow-hidden">
+                                <img
+                                  src={img.url}
+                                  alt={img.name}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23f1f5f9" width="100" height="100"/><text x="50" y="55" font-size="30" text-anchor="middle" fill="%23cbd5e1">🖼</text></svg>';
+                                  }}
+                                />
+                                {isLinked && (
+                                  <span className="absolute top-2 right-2 bg-emerald-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-xs">
+                                    مربوطة
+                                  </span>
+                                )}
+                              </div>
+                              <div className="p-3 flex-1 flex flex-col justify-between gap-2.5">
+                                <div className="space-y-1">
+                                  <p className="text-[9px] text-slate-500 font-bold truncate block" dir="ltr" title={img.name}>
+                                    {img.name}
+                                  </p>
+                                  {isLinked && (
+                                    <p className="text-[9px] text-emerald-650 font-bold truncate">
+                                      {linkedProducts.map(p => p.name).join('، ')}
+                                    </p>
+                                  )}
+                                </div>
+                                <button
+                                  onClick={() => {
+                                    setLinkingImage(img);
+                                    setLinkingProductId('');
+                                    setLinkingSearchQuery('');
+                                  }}
+                                  className="w-full py-1.5 bg-slate-200 hover:bg-primary hover:text-white text-slate-700 rounded-lg text-[10px] font-bold transition-all cursor-pointer"
+                                >
+                                  ربط بمنتج 🔗
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Reverse Linking Modal Overlay */}
+            {linkingImage && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div onClick={() => setLinkingImage(null)} className="absolute inset-0 bg-slate-950/40 backdrop-blur-xs" />
+                <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-md w-full relative z-10 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto">
+                  <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                    <button onClick={() => setLinkingImage(null)} className="text-slate-400 hover:text-slate-800 transition-colors">
+                      <X size={18} />
+                    </button>
+                    <h3 className="font-black text-sm text-slate-900">ربط الصورة بمنتج في الكتالوج</h3>
+                  </div>
+
+                  <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                    <img
+                      src={linkingImage.url}
+                      alt="معاينة الربط"
+                      className="h-16 w-16 object-cover rounded-xl border border-slate-200 flex-shrink-0"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-black text-slate-400 block" dir="ltr">
+                        {linkingImage.name}
+                      </p>
+                      <p className="text-[11px] text-slate-500 font-semibold mt-1">اختر منتجاً من القائمة أدناه لتعيين هذه الصورة له</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="font-bold text-slate-700 block text-xs">ابحث عن منتج بالاسم *</label>
+                    <input
+                      type="text"
+                      placeholder="🔍 اكتب اسم أو رمز (رمز POS) للمنتج..."
+                      value={linkingSearchQuery}
+                      onChange={(e) => setLinkingSearchQuery(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-right focus:outline-none focus:ring-1 focus:ring-primary text-xs font-bold text-slate-900"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700 block text-xs">اختر المنتج من القائمة التالية *</label>
+                    
+                    {/* Scrollable list of products instead of dropdown */}
+                    <div className="border border-slate-200 rounded-2xl max-h-56 overflow-y-auto divide-y divide-slate-150 bg-slate-50/50 shadow-inner relative min-h-24">
+                      {searchingModalProducts ? (
+                        <div className="flex flex-col items-center justify-center p-6 gap-2 text-slate-400">
+                          <Loader2 className="animate-spin text-primary" size={18} />
+                          <span className="text-[10px] font-bold">جاري البحث في قاعدة البيانات...</span>
+                        </div>
+                      ) : (
+                        <>
+                          {modalProducts.map((p) => {
+                            const isSelected = linkingProductId === p.id;
+                            return (
+                              <button
+                                key={p.id}
+                                type="button"
+                                onClick={() => setLinkingProductId(p.id)}
+                                className={`w-full text-right px-4 py-3 flex items-center justify-between transition-colors ${
+                                  isSelected 
+                                    ? 'bg-primary text-white font-black' 
+                                    : 'hover:bg-slate-100 text-slate-700'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className={`w-2 h-2 rounded-full ${isSelected ? 'bg-white' : 'bg-primary/40'}`} />
+                                  <span className="text-xs truncate max-w-xs">{p.name}</span>
+                                </div>
+                                <span className={`text-[10px] font-bold ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>
+                                  #{p.pos_product_id}
+                                </span>
+                              </button>
+                            );
+                          })}
+                          
+                          {modalProducts.length === 0 && (
+                            <div className="p-6 text-center text-slate-400 text-xs font-bold">
+                              {linkingSearchQuery ? 'لا توجد نتائج بحث مطابقة' : 'اكتب للبحث في المنتجات...'}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                    {linkingSearchQuery && !searchingModalProducts && (
+                      <span className="text-[9px] text-slate-400 font-bold block mt-1">
+                        يتم عرض أول 100 نتيجة بحث فقط للتسريع
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      onClick={() => handleLinkImageToProduct(linkingProductId, linkingImage.url)}
+                      disabled={!linkingProductId || linkingLoading}
+                      className="flex-1 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer text-xs disabled:opacity-50"
+                    >
+                      {linkingLoading ? <Loader2 size={12} className="animate-spin" /> : 'تأكيد الربط بالمنتج 🔗'}
+                    </button>
+                    <button
+                      onClick={() => setLinkingImage(null)}
+                      className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-all cursor-pointer text-xs"
+                    >
+                      إلغاء
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -2172,6 +2653,18 @@ CREATE POLICY "Admin Delete Storage" ON storage.objects FOR DELETE USING (bucket
                       />
                     </label>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      fetchStorageImages();
+                      setShowGallerySelectorModal(true);
+                      setGallerySearchQuery('');
+                    }}
+                    className="w-full mt-1.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-[10px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <Package size={12} />
+                    اختر من معرض الصور المرفوعة 🖼️
+                  </button>
                   {prodImageUrl && (
                     <div className="mt-2 flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-100">
                       <img src={prodImageUrl} alt="معاينة" className="h-10 w-10 object-cover rounded-lg border border-slate-200" />
@@ -2240,6 +2733,80 @@ CREATE POLICY "Admin Delete Storage" ON storage.objects FOR DELETE USING (bucket
               </div>
 
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Gallery Image Selector Modal (for Product Form) */}
+      {showGallerySelectorModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div onClick={() => setShowGallerySelectorModal(false)} className="absolute inset-0 bg-slate-950/40 backdrop-blur-xs" />
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-lg w-full relative z-10 shadow-2xl space-y-4 max-h-[80vh] overflow-y-auto text-right">
+            
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <button onClick={() => setShowGallerySelectorModal(false)} className="text-slate-400 hover:text-slate-800 transition-colors">
+                <X size={18} />
+              </button>
+              <h3 className="font-black text-sm text-slate-900">اختر صورة من معرض سوبابيز</h3>
+            </div>
+
+            <div className="relative w-full">
+              <input
+                type="text"
+                placeholder="🔍 ابحث عن اسم الصورة..."
+                value={gallerySearchQuery}
+                onChange={(e) => setGallerySearchQuery(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3 pr-9 py-2 text-right focus:outline-none focus:ring-1 focus:ring-primary text-xs font-bold text-slate-900"
+              />
+              <Search size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            </div>
+
+            {loadingImages ? (
+              <div className="flex flex-col items-center justify-center py-10 gap-3 text-slate-400">
+                <Loader2 className="animate-spin text-primary" size={24} />
+                <p className="text-xs font-semibold">جاري تحميل المعرض...</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 max-h-96 overflow-y-auto p-1">
+                {storageImages
+                  .filter(img => img.name.toLowerCase().includes(gallerySearchQuery.toLowerCase()))
+                  .map((img) => (
+                    <button
+                      type="button"
+                      key={`selector-${img.name}`}
+                      onClick={() => {
+                        setProdImageUrl(img.url);
+                        setShowGallerySelectorModal(false);
+                      }}
+                      className="group bg-slate-50 hover:bg-slate-100 border border-slate-150 hover:border-primary rounded-xl overflow-hidden shadow-xs hover:shadow transition-all relative aspect-square text-left cursor-pointer"
+                    >
+                      <img
+                        src={img.url}
+                        alt={img.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23f1f5f9" width="100" height="100"/><text x="50" y="55" font-size="30" text-anchor="middle" fill="%23cbd5e1">🖼</text></svg>';
+                        }}
+                      />
+                      <div className="absolute inset-x-0 bottom-0 bg-slate-950/60 p-1 text-center">
+                        <p className="text-[8px] text-white truncate block" dir="ltr">
+                          {img.name}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+              </div>
+            )}
+            
+            <div className="pt-2 text-left">
+              <button
+                type="button"
+                onClick={() => setShowGallerySelectorModal(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-all text-xs cursor-pointer"
+              >
+                إغلاق
+              </button>
+            </div>
           </div>
         </div>
       )}

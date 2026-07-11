@@ -182,8 +182,13 @@ class SupabaseSyncService
                                            : 12,
                 'stock'             => $safeStock,
                 'is_available'      => (int) $product['is_active'] === 1,
-                'image_url'         => $imageUrl,
             ];
+
+            // Only include image_url if a local image exists.
+            // Omitting it preserves any image already set directly in Supabase.
+            if ($imageUrl !== null) {
+                $payload['image_url'] = $imageUrl;
+            }
 
             $s2  = $db->prepare('SELECT supabase_id FROM products WHERE id = :id');
             $s2->execute(['id' => $product['id']]);
@@ -198,6 +203,7 @@ class SupabaseSyncService
                     $upd->execute(['sid' => $res[0]['id'], 'id' => $product['id']]);
                 }
             }
+
         } catch (\Throwable $e) {
             self::queue('product', $product['id'], 'upsert', $product, $e->getMessage());
         }
@@ -221,8 +227,14 @@ class SupabaseSyncService
     // ============================================================
     //  مزامنة رصيد المخزون (Stock)
     // ============================================================
-    public static function syncStock(int $posProductId, float $newBalance): void
+    public static function syncStock(int $posProductId, float $newBalance, bool $direct = false): void
     {
+        if (!$direct) {
+            // Queue the stock update in the database instead of sending a synchronous REST API request
+            self::queue('stock', $posProductId, 'upsert', ['stock' => $newBalance], 'Pending background sync');
+            return;
+        }
+
         try {
             $db   = Database::pdo();
             $stmt = $db->prepare('SELECT supabase_id FROM products WHERE id = :id');
@@ -235,6 +247,7 @@ class SupabaseSyncService
             }
         } catch (\Throwable $e) {
             self::queue('stock', $posProductId, 'upsert', ['stock' => $newBalance], $e->getMessage());
+            throw $e;
         }
     }
 
@@ -383,7 +396,7 @@ class SupabaseSyncService
                     }
                 }
 
-                $prodPayloads[] = [
+                $payload = [
                     'pos_product_id'    => $prodId,
                     'category_id'       => $catSid,
                     'name'              => $prod['name'],
@@ -398,9 +411,16 @@ class SupabaseSyncService
                                                : 12,
                     'stock'             => $safeStock,
                     'is_available'      => (int) $prod['is_active'] === 1,
-                    'image_url'         => $imageUrl,
                     'importance_score'  => (float) ($prod['importance_score'] ?? 0.0),
                 ];
+
+                // Only include image_url if the local product has one.
+                // If null, omit it entirely to preserve any image already set in Supabase.
+                if ($imageUrl !== null) {
+                    $payload['image_url'] = $imageUrl;
+                }
+
+                $prodPayloads[] = $payload;
             }
 
             // تقسيم المنتجات إلى حزم (Chunks) بحجم 200 منتج لكل حزمة لتفادي حجم طلبات HTTP الكبير والمهلات الزمنية
@@ -499,7 +519,7 @@ class SupabaseSyncService
                         'delete' => self::deleteProduct($item['entity_id']),
                         default  => null,
                     },
-                    'stock' => self::syncStock($item['entity_id'], (float) ($payload['stock'] ?? 0)),
+                    'stock' => self::syncStock($item['entity_id'], (float) ($payload['stock'] ?? 0), true),
                     default  => null,
                 };
                 $ok = true;
@@ -613,6 +633,36 @@ class SupabaseSyncService
             return true;
         } catch (\Throwable $e) {
             error_log('Failed to update webhook URL in Supabase: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * تحديث إعدادات الشحن والحد الأدنى في قاعدة بيانات Supabase
+     */
+    public static function updateShippingSettings(float $shippingFee, float $freeShippingThreshold): bool
+    {
+        try {
+            $payloadFee = [
+                'key'   => 'ecom_shipping_fee',
+                'value' => (string)$shippingFee
+            ];
+            $payloadThreshold = [
+                'key'   => 'ecom_free_shipping_threshold',
+                'value' => (string)$freeShippingThreshold
+            ];
+
+            self::sendRequest('/pos_settings?on_conflict=key', 'POST', $payloadFee, [
+                'Prefer: resolution=merge-duplicates'
+            ]);
+
+            self::sendRequest('/pos_settings?on_conflict=key', 'POST', $payloadThreshold, [
+                'Prefer: resolution=merge-duplicates'
+            ]);
+
+            return true;
+        } catch (\Throwable $e) {
+            error_log('Failed to update shipping settings in Supabase: ' . $e->getMessage());
             return false;
         }
     }
