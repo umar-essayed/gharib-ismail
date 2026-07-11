@@ -43,7 +43,7 @@ function AdminOrdersContent() {
   const [adminError, setAdminError] = useState<string | null>(null);
 
   // Tab State
-  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'categories' | 'stats' | 'banners' | 'gallery'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'categories' | 'stats' | 'banners' | 'gallery' | 'settings'>('orders');
 
   // Core Lists
   const [orders, setOrders] = useState<Order[]>([]);
@@ -1318,6 +1318,17 @@ function AdminOrdersContent() {
             <Package size={14} />
             معرض الصور ({storageImages.length})
           </button>
+          <button
+            onClick={() => { setActiveTab('settings'); setSearchQuery(''); }}
+            className={`pb-3.5 px-5 border-b-2 transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'settings' 
+                ? 'border-primary text-primary font-black' 
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Clock size={14} />
+            إعدادات التوصيل ⏰
+          </button>
         </div>
 
         {/* Tab 1 Content: Orders Feed */}
@@ -2214,62 +2225,6 @@ CREATE POLICY "Admin Delete Storage" ON storage.objects FOR DELETE USING (bucket
                 </div>
               </div>
 
-              {/* Delivery Hours Settings Section */}
-              <div className="lg:col-span-12 bg-white border border-slate-150 rounded-3xl p-6 shadow-xs space-y-4 text-right">
-                <div className="flex items-center gap-2 border-b border-slate-100 pb-3 justify-end">
-                  <div>
-                    <h3 className="text-xs font-black text-slate-900">ساعات عمل خدمة التوصيل ⏰</h3>
-                    <p className="text-[10px] text-slate-400 font-semibold mt-0.5">اضبط مواعيد عمل الدليفري وسلوك الموقع خارج أوقات العمل</p>
-                  </div>
-                </div>
-                
-                <form onSubmit={handleSaveDeliverySettings} className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end text-xs font-semibold text-slate-700">
-                  <div className="space-y-1.5">
-                    <label className="block">ساعة بدء العمل (افتراضي 5:00 مساءً) *</label>
-                    <input
-                      type="time"
-                      required
-                      value={deliveryStart}
-                      onChange={(e) => setDeliveryStart(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-center focus:outline-none focus:ring-1 focus:ring-primary text-slate-950 font-bold"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="block">ساعة انتهاء العمل (افتراضي 4:00 فجراً) *</label>
-                    <input
-                      type="time"
-                      required
-                      value={deliveryEnd}
-                      onChange={(e) => setDeliveryEnd(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-center focus:outline-none focus:ring-1 focus:ring-primary text-slate-955 font-bold"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="block">حالة استقبال الطلبات خارج ساعات العمل *</label>
-                    <select
-                      value={deliveryMode}
-                      onChange={(e) => setDeliveryMode(e.target.value as 'warn' | 'block')}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-center focus:outline-none focus:ring-1 focus:ring-primary text-slate-950 font-bold cursor-pointer"
-                    >
-                      <option value="warn">قبول الطلبات مع تنبيه العميل (توصيل لاحق) ⚠️</option>
-                      <option value="block">إغلاق استقبال الطلبات بالكامل (يظهر لوك) 🔒</option>
-                    </select>
-                  </div>
-
-                  <div className="md:col-span-3 pt-2">
-                    <button
-                      type="submit"
-                      disabled={savingSettings}
-                      className="w-full py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
-                    >
-                      {savingSettings ? <Loader2 size={12} className="animate-spin" /> : 'حفظ إعدادات مواعيد التوصيل 💾'}
-                    </button>
-                  </div>
-                </form>
-              </div>
-
             </div>
           </div>
         )}
@@ -2514,6 +2469,69 @@ CREATE POLICY "Admin Delete Storage" ON storage.objects FOR DELETE USING (bucket
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Tab 7 Content: Delivery Settings */}
+        {activeTab === 'settings' && (
+          <div className="space-y-6 animate-in fade-in duration-200 text-right">
+            <div className="bg-white border border-slate-150 rounded-3xl p-6 shadow-xs space-y-4">
+              <div className="flex items-center gap-2.5 border-b border-slate-100 pb-4 justify-end">
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">إعدادات مواعيد عمل خدمة التوصيل ⏰</h3>
+                  <p className="text-[10px] text-slate-400 font-semibold mt-0.5">تحكم في ساعات عمل خدمة الدليفري للمتجر الإلكتروني وسلوك الطلبات خارج ساعات العمل</p>
+                </div>
+                <span className="p-2.5 bg-primary/10 text-primary rounded-2xl">
+                  <Clock size={20} />
+                </span>
+              </div>
+              
+              <form onSubmit={handleSaveDeliverySettings} className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end text-xs font-semibold text-slate-700 pt-2">
+                <div className="space-y-1.5 text-right">
+                  <label className="block text-gray-700 font-bold">ساعة بدء العمل (افتراضي 5:00 مساءً) *</label>
+                  <input
+                    type="time"
+                    required
+                    value={deliveryStart}
+                    onChange={(e) => setDeliveryStart(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-center focus:outline-none focus:ring-1 focus:ring-primary text-slate-950 font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1.5 text-right">
+                  <label className="block text-gray-700 font-bold">ساعة انتهاء العمل (افتراضي 4:00 فجراً) *</label>
+                  <input
+                    type="time"
+                    required
+                    value={deliveryEnd}
+                    onChange={(e) => setDeliveryEnd(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-center focus:outline-none focus:ring-1 focus:ring-primary text-slate-955 font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1.5 text-right">
+                  <label className="block text-gray-700 font-bold">حالة استقبال الطلبات خارج ساعات العمل *</label>
+                  <select
+                    value={deliveryMode}
+                    onChange={(e) => setDeliveryMode(e.target.value as 'warn' | 'block')}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-center focus:outline-none focus:ring-1 focus:ring-primary text-slate-950 font-bold cursor-pointer"
+                  >
+                    <option value="warn">⚠️ قبول الطلبات مع تنبيه العميل (توصيل لاحق)</option>
+                    <option value="block">🔒 إغلاق استقبال الطلبات بالكامل (يظهر لوك)</option>
+                  </select>
+                </div>
+
+                <div className="md:col-span-3 pt-4">
+                  <button
+                    type="submit"
+                    disabled={savingSettings}
+                    className="w-full py-3 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs text-xs"
+                  >
+                    {savingSettings ? <Loader2 size={14} className="animate-spin" /> : 'حفظ إعدادات مواعيد التوصيل 💾'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
 
