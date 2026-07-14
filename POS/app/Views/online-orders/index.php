@@ -87,13 +87,6 @@
             <button onclick="fetchOrders(true)" class="btn btn-outline-primary btn-sm" id="refresh-btn">
                 🔄 تحديث
             </button>
-            <form action="<?= url('/online-orders/full-sync') ?>" method="POST" class="d-inline" id="full-sync-form">
-                <?= csrf_field() ?>
-                <button class="btn btn-warning btn-sm fw-bold"
-                        onclick="return confirm('سيتم مزامنة كل المنتجات والأقسام مع المتجر. قد تستغرق دقيقة. متابعة؟')">
-                    ☁️ مزامنة كاملة
-                </button>
-            </form>
             <a href="<?= url('/online-orders/accepted') ?>" class="btn btn-secondary btn-sm">📋 الطلبات المقبولة</a>
         </div>
     </div>
